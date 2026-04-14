@@ -146,14 +146,12 @@
                 <separator/>
                 <filter string="Sin Pago Formal" name="no_payment"
                         domain="[('payment_id', '=', False), ('state', '=', 'delivered')]"/>
-                <group expand="0" string="Agrupar por">
                     <filter string="Cliente" name="group_partner"
                             context="{'group_by': 'partner_id'}"/>
                     <filter string="Estado" name="group_state"
                             context="{'group_by': 'state'}"/>
                     <filter string="Fecha" name="group_date"
                             context="{'group_by': 'date:month'}"/>
-                </group>
             </search>
         </field>
     </record>
