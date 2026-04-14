@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Form View -->
+    <record id="cash_receipt_view_form" model="ir.ui.view">
+        <field name="name">cash.receipt.form</field>
+        <field name="model">cash.receipt</field>
+        <field name="arch" type="xml">
+            <form string="Recibo de Efectivo">
+                <header>
+                    <button name="action_deliver"
+                            string="Entregar al Cliente"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_print_receipt"
+                            string="Imprimir Recibo"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state not in ('delivered', 'paid')"/>
+                    <button name="action_register_payment"
+                            string="Registrar Pago Formal"
+                            type="object"
+                            class="btn-warning"
+                            invisible="state != 'delivered'"
+                            help="Registre el pago formalmente en contabilidad"/>
+                    <button name="action_view_payment"
+                            string="Ver Pago"
+                            type="object"
+                            class="btn-info"
+                            invisible="not payment_id"/>
+                    <button name="action_cancel"
+                            string="Cancelar"
+                            type="object"
+                            invisible="state in ('paid', 'cancelled')"/>
+                    <button name="action_draft"
+                            string="Regresar a Borrador"
+                            type="object"
+                            invisible="state not in ('delivered', 'cancelled')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,delivered,paid"/>
+                </header>
+                <div class="alert alert-warning text-center" role="alert"
+                     invisible="state != 'delivered'">
+                    <strong>⚠ Este recibo ha sido entregado pero el pago NO ha sido registrado formalmente.</strong>
+                    <br/>Haga clic en <b>"Registrar Pago Formal"</b> para completar el proceso.
+                </div>
+                <div class="alert alert-success text-center" role="alert"
+                     invisible="state != 'paid'">
+                    <strong>✓ Pago registrado correctamente en el sistema.</strong>
+                </div>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Información del Pago">
+                            <field name="date"/>
+                            <field name="partner_id"/>
+                            <field name="amount"/>
+                            <field name="currency_id" groups="base.group_multi_currency"/>
+                            <field name="received_by"/>
+                        </group>
+                        <group string="Resumen">
+                            <field name="total_orders_amount"/>
+                            <field name="pending_amount"/>
+                            <field name="is_fully_paid" invisible="1"/>
+                            <field name="receipt_count" string="Otros Recibos"/>
+                            <field name="payment_id" readonly="1"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Pedidos Asociados" name="orders">
+                            <field name="sale_order_ids">
+                                <list>
+                                    <field name="name" string="Pedido"/>
+                                    <field name="date_order" string="Fecha"/>
+                                    <field name="amount_total" string="Total"/>
+                                    <field name="invoice_status" string="Estado Factura"/>
+                                    <field name="state" string="Estado"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notas y Firma" name="notes">
+                            <group>
+                                <field name="notes" placeholder="Concepto del pago, notas adicionales..."/>
+                            </group>
+                            <group string="Firma / Sello" col="4">
+                                <field name="signature" widget="signature"
+                                       string="Firma del Receptor"/>
+                                <field name="signature_name"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- List View -->
+    <record id="cash_receipt_view_list" model="ir.ui.view">
+        <field name="name">cash.receipt.list</field>
+        <field name="model">cash.receipt</field>
+        <field name="arch" type="xml">
+            <list string="Recibos de Efectivo"
+                  decoration-warning="state == 'delivered'"
+                  decoration-success="state == 'paid'"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="sale_order_ids" widget="many2many_tags"/>
+                <field name="amount" sum="Total Recibido"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state"
+                       widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'delivered'"
+                       decoration-success="state == 'paid'"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="payment_id" optional="show"/>
+                <field name="received_by" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="cash_receipt_view_search" model="ir.ui.view">
+        <field name="name">cash.receipt.search</field>
+        <field name="model">cash.receipt</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Recibos">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="sale_order_ids"/>
+                <filter string="Borrador" name="draft"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter string="Entregado (Pendiente)" name="delivered"
+                        domain="[('state', '=', 'delivered')]"/>
+                <filter string="Pagado" name="paid"
+                        domain="[('state', '=', 'paid')]"/>
+                <separator/>
+                <filter string="Sin Pago Formal" name="no_payment"
+                        domain="[('payment_id', '=', False), ('state', '=', 'delivered')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Cliente" name="group_partner"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter string="Estado" name="group_state"
+                            context="{'group_by': 'state'}"/>
+                    <filter string="Fecha" name="group_date"
+                            context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_cash_receipt" model="ir.actions.act_window">
+        <field name="name">Recibos de Efectivo</field>
+        <field name="res_model">cash.receipt</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="cash_receipt_view_search"/>
+        <field name="context">{'search_default_no_payment': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No hay recibos de efectivo
+            </p>
+            <p>
+                Los recibos se generan desde las órdenes de venta.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="menu_cash_receipt_root"
+              name="Recibos de Efectivo"
+              parent="sale.sale_menu_root"
+              sequence="5"/>
+    <menuitem id="menu_cash_receipt_list"
+              name="Recibos"
+              parent="menu_cash_receipt_root"
+              action="action_cash_receipt"
+              sequence="10"/>
+
+</odoo>

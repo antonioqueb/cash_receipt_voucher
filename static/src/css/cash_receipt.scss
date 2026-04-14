@@ -1,0 +1,14 @@
+// Cash Receipt Voucher Styles
+
+.o_form_view {
+    // Badge de recibo pendiente en la orden de venta
+    .o_cash_receipt_pending_badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffc107;
+    }
+}

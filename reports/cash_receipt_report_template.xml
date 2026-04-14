@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <template id="report_cash_receipt">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.external_layout">
+                    <div class="page" style="font-family: Arial, sans-serif;">
+
+                        <!-- Header del recibo -->
+                        <div class="text-center mb-4">
+                            <h2 style="color: #333; margin-bottom: 5px;">
+                                <strong>COMPROBANTE DE RECEPCIÓN DE PAGO EN EFECTIVO</strong>
+                            </h2>
+                            <h3 style="color: #666;">
+                                <span t-field="doc.name"/>
+                            </h3>
+                            <div t-if="doc.state == 'draft'"
+                                 style="background: #fff3cd; border: 2px dashed #ffc107; padding: 8px; margin: 10px auto; max-width: 400px; border-radius: 5px;">
+                                <strong style="color: #856404;">⚠ BORRADOR - NO VÁLIDO</strong>
+                            </div>
+                            <div t-if="doc.state == 'delivered'"
+                                 style="background: #fff3cd; border: 2px solid #ffc107; padding: 8px; margin: 10px auto; max-width: 500px; border-radius: 5px;">
+                                <strong style="color: #856404;">ENTREGADO - PENDIENTE DE REGISTRO FORMAL</strong>
+                            </div>
+                            <div t-if="doc.state == 'paid'"
+                                 style="background: #d4edda; border: 2px solid #28a745; padding: 8px; margin: 10px auto; max-width: 400px; border-radius: 5px;">
+                                <strong style="color: #155724;">✓ PAGO REGISTRADO</strong>
+                            </div>
+                            <div t-if="doc.state == 'cancelled'"
+                                 style="background: #f8d7da; border: 2px solid #dc3545; padding: 8px; margin: 10px auto; max-width: 400px; border-radius: 5px;">
+                                <strong style="color: #721c24;">✗ CANCELADO</strong>
+                            </div>
+                        </div>
+
+                        <!-- Información principal -->
+                        <table class="table table-bordered" style="margin-bottom: 20px;">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 30%; background: #f8f9fa;"><strong>Fecha de Recepción:</strong></td>
+                                    <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="background: #f8f9fa;"><strong>Cliente:</strong></td>
+                                    <td>
+                                        <span t-field="doc.partner_id.name"/>
+                                        <t t-if="doc.partner_id.vat">
+                                            <br/><small>RFC: <span t-field="doc.partner_id.vat"/></small>
+                                        </t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background: #f8f9fa;"><strong>Recibido por:</strong></td>
+                                    <td><span t-field="doc.received_by.name"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Monto -->
+                        <div style="border: 3px solid #333; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px; background: #f8f9fa;">
+                            <p style="margin: 0; font-size: 14px; color: #666;">MONTO RECIBIDO</p>
+                            <h1 style="margin: 10px 0; color: #28a745; font-size: 36px;">
+                                <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                            </h1>
+                            <p style="margin: 0; font-size: 12px; color: #999;">
+                                (<span t-field="doc.currency_id.name"/>)
+                            </p>
+                        </div>
+
+                        <!-- Pedidos asociados -->
+                        <t t-if="doc.sale_order_ids">
+                            <h4 style="color: #333; border-bottom: 2px solid #333; padding-bottom: 5px;">
+                                Pedidos de Venta Asociados
+                            </h4>
+                            <table class="table table-sm table-bordered">
+                                <thead>
+                                    <tr style="background: #343a40; color: white;">
+                                        <th>Pedido</th>
+                                        <th>Fecha</th>
+                                        <th class="text-end">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="doc.sale_order_ids" t-as="order">
+                                        <tr>
+                                            <td><span t-field="order.name"/></td>
+                                            <td><span t-field="order.date_order" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                            <td class="text-end">
+                                                <span t-field="order.amount_total"
+                                                      t-options="{'widget': 'monetary', 'display_currency': order.currency_id}"/>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background: #f8f9fa;">
+                                        <td colspan="2"><strong>Total Pedidos:</strong></td>
+                                        <td class="text-end">
+                                            <strong>
+                                                <span t-field="doc.total_orders_amount"
+                                                      t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                            </strong>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </t>
+
+                        <!-- Notas -->
+                        <t t-if="doc.notes">
+                            <h4 style="color: #333; border-bottom: 2px solid #333; padding-bottom: 5px;">
+                                Concepto / Notas
+                            </h4>
+                            <p><span t-field="doc.notes"/></p>
+                        </t>
+
+                        <!-- Firma -->
+                        <div class="row mt-5">
+                            <div class="col-6 text-center">
+                                <t t-if="doc.signature">
+                                    <img t-att-src="image_data_uri(doc.signature)"
+                                         style="max-height: 100px; max-width: 200px;"/>
+                                    <br/>
+                                </t>
+                                <div style="border-top: 1px solid #333; width: 200px; margin: 10px auto 0; padding-top: 5px;">
+                                    <t t-if="doc.signature_name">
+                                        <span t-field="doc.signature_name"/>
+                                        <br/>
+                                    </t>
+                                    <small>Firma del Receptor</small>
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div style="border-top: 1px solid #333; width: 200px; margin: 110px auto 0; padding-top: 5px;">
+                                    <small>Firma del Cliente</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Disclaimer -->
+                        <div style="margin-top: 40px; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; font-size: 11px; color: #666;">
+                            <p style="margin: 0;">
+                                <strong>AVISO IMPORTANTE:</strong> Este documento es un comprobante provisional
+                                de recepción de pago en efectivo. <strong>No sustituye una factura ni un recibo
+                                fiscal oficial.</strong> El pago será registrado formalmente en el sistema contable.
+                                Para cualquier aclaración, contacte a su asesor de ventas.
+                            </p>
+                            <t t-if="doc.state == 'delivered'">
+                                <p style="margin: 8px 0 0; color: #856404;">
+                                    <strong>Estado:</strong> Este recibo ha sido entregado pero el pago
+                                    aún no ha sido registrado formalmente en el sistema.
+                                </p>
+                            </t>
+                            <t t-if="doc.payment_id">
+                                <p style="margin: 8px 0 0; color: #155724;">
+                                    <strong>Pago registrado:</strong>
+                                    <span t-field="doc.payment_id.name"/> -
+                                    <span t-field="doc.payment_id.date"/>
+                                </p>
+                            </t>
+                        </div>
+
+                        <!-- ID único para verificación -->
+                        <div class="text-center mt-3" style="font-size: 10px; color: #aaa;">
+                            <span t-field="doc.name"/> |
+                            Generado: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/> |
+                            <span t-field="doc.company_id.name"/>
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

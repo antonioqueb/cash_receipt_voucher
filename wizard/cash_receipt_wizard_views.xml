@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="cash_receipt_wizard_view_form" model="ir.ui.view">
+        <field name="name">cash.receipt.wizard.form</field>
+        <field name="model">cash.receipt.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generar Recibo de Efectivo">
+                <group>
+                    <group string="Datos del Pago">
+                        <field name="partner_id"/>
+                        <field name="commercial_partner_id" invisible="1"/>
+                        <field name="amount"/>
+                        <field name="currency_id" groups="base.group_multi_currency"/>
+                        <field name="company_id" invisible="1"/>
+                    </group>
+                    <group string="Resumen">
+                        <field name="total_orders" readonly="1"/>
+                        <field name="already_received" readonly="1"/>
+                        <field name="remaining" readonly="1"
+                               decoration-danger="remaining &lt; 0"
+                               decoration-success="remaining == 0"/>
+                    </group>
+                </group>
+                <group string="Pedidos de Venta">
+                    <field name="sale_order_ids" widget="many2many_tags"
+                           nolabel="1" colspan="2"
+                           options="{'no_create': True}"/>
+                </group>
+                <group>
+                    <field name="notes" placeholder="Concepto del pago, referencias, etc."
+                           nolabel="1" colspan="2"/>
+                </group>
+                <group string="Opciones">
+                    <field name="deliver_immediately"/>
+                </group>
+                <group string="Firma / Sello (Opcional)" col="4">
+                    <field name="signature" widget="signature" string="Firma"/>
+                    <field name="signature_name" placeholder="Nombre del firmante"/>
+                </group>
+                <footer>
+                    <button name="action_generate_receipt"
+                            string="Generar Recibo"
+                            type="object"
+                            class="btn-primary"/>
+                    <button name="action_generate_and_print"
+                            string="Generar e Imprimir"
+                            type="object"
+                            class="btn-secondary"/>
+                    <button string="Cancelar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

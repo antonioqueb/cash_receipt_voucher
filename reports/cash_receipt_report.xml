@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="action_report_cash_receipt" model="ir.actions.report">
+        <field name="name">Recibo de Efectivo</field>
+        <field name="model">cash.receipt</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cash_receipt_voucher.report_cash_receipt</field>
+        <field name="report_file">cash_receipt_voucher.report_cash_receipt</field>
+        <field name="binding_model_id" ref="model_cash_receipt"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_us_letter"/>
+    </record>
+
+</odoo>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Extend Sale Order Form -->
+    <record id="sale_order_form_inherit_cash_receipt" model="ir.ui.view">
+        <field name="name">sale.order.form.cash.receipt</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Botón smart button para ver recibos -->
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_cash_receipts"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-money"
+                        invisible="cash_receipt_count == 0">
+                    <field name="cash_receipt_count" widget="statinfo"
+                           string="Recibos"/>
+                </button>
+            </xpath>
+
+            <!-- Página dentro del notebook para recibos de efectivo -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Recibos de Efectivo" name="cash_receipts">
+                    <div class="row mb-3">
+                        <div class="col-auto">
+                            <button name="action_open_cash_receipt_wizard"
+                                    string="Generar Recibo de Efectivo"
+                                    type="object"
+                                    class="btn-secondary"
+                                    icon="fa-file-text-o"
+                                    invisible="state not in ('sale', 'done')"/>
+                        </div>
+                        <div class="col-auto" invisible="cash_received_amount == 0">
+                            <div class="alert alert-info mb-0 py-1 px-3">
+                                <strong>Efectivo recibido:</strong>
+                                <field name="cash_received_amount" widget="monetary"/>
+                            </div>
+                        </div>
+                        <div class="col-auto" invisible="not cash_receipt_pending">
+                            <div class="alert alert-warning mb-0 py-1 px-3">
+                                <i class="fa fa-exclamation-triangle"/> Recibo(s) pendiente(s) de registro formal
+                            </div>
+                        </div>
+                    </div>
+                    <field name="cash_receipt_ids" readonly="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="date"/>
+                            <field name="amount"/>
+                            <field name="currency_id" column_invisible="1"/>
+                            <field name="state"
+                                   widget="badge"
+                                   decoration-info="state == 'draft'"
+                                   decoration-warning="state == 'delivered'"
+                                   decoration-success="state == 'paid'"
+                                   decoration-danger="state == 'cancelled'"/>
+                            <field name="payment_id"/>
+                            <field name="received_by"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>
