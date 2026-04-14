@@ -5,246 +5,184 @@
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-call="web.external_layout">
-                    <div class="page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #2c3e50; font-size: 13px;">
+                    <div class="page" style="font-family: Arial, sans-serif; color: #000; font-size: 10px; line-height: 1.3;">
 
-                        <!-- ====== ENCABEZADO ====== -->
-                        <div style="border-bottom: 4px solid #1a5276; padding-bottom: 15px; margin-bottom: 25px;">
+                        <!-- ENCABEZADO -->
+                        <div style="border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px;">
                             <div class="row">
                                 <div class="col-8">
-                                    <h1 style="font-size: 26px; font-weight: 700; color: #1a5276; margin: 0 0 3px 0; letter-spacing: 1px;">
-                                        RECIBO DE PAGO EN EFECTIVO
-                                    </h1>
-                                    <p style="margin: 0; color: #7f8c8d; font-size: 11px;">
-                                        Comprobante provisional de recepción de pago
-                                    </p>
+                                    <strong style="font-size: 15px; letter-spacing: 0.5px;">RECIBO DE PAGO EN EFECTIVO</strong>
+                                    <br/>
+                                    <span style="font-size: 8px; color: #555;">Comprobante provisional · No sustituye CFDI</span>
                                 </div>
                                 <div class="col-4 text-end">
-                                    <div style="background: #1a5276; color: white; display: inline-block; padding: 8px 20px; border-radius: 4px;">
-                                        <span style="font-size: 11px; display: block; opacity: 0.8;">No. de Recibo</span>
-                                        <span style="font-size: 20px; font-weight: 700; letter-spacing: 1px;">
-                                            <span t-field="doc.name"/>
-                                        </span>
-                                    </div>
+                                    <strong style="font-size: 14px;"><span t-field="doc.name"/></strong>
+                                    <br/>
+                                    <span style="font-size: 8px;">
+                                        <span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/>
+                                    </span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- ====== ESTADO ====== -->
+                        <!-- ESTADO -->
                         <t t-if="doc.state == 'draft'">
-                            <div style="background: #fef9e7; border-left: 5px solid #f39c12; padding: 10px 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
-                                <strong style="color: #b7950b;">BORRADOR</strong>
-                                <span style="color: #7d6608;"> — Este documento aún no ha sido entregado al cliente.</span>
+                            <div style="border: 1px dashed #000; padding: 4px 8px; margin-bottom: 8px; font-size: 9px; text-align: center;">
+                                <strong>BORRADOR — NO VÁLIDO</strong>
                             </div>
                         </t>
                         <t t-if="doc.state == 'delivered'">
-                            <div style="background: #fef9e7; border-left: 5px solid #e67e22; padding: 10px 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
-                                <strong style="color: #ca6f1e;">ENTREGADO</strong>
-                                <span style="color: #935116;"> — Pendiente de registro formal en contabilidad.</span>
+                            <div style="border: 1px solid #000; padding: 4px 8px; margin-bottom: 8px; font-size: 9px; text-align: center;">
+                                <strong>ENTREGADO — PENDIENTE DE REGISTRO FORMAL</strong>
                             </div>
                         </t>
                         <t t-if="doc.state == 'paid'">
-                            <div style="background: #eafaf1; border-left: 5px solid #27ae60; padding: 10px 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
-                                <strong style="color: #1e8449;">PAGADO</strong>
-                                <span style="color: #196f3d;"> — Pago registrado formalmente en el sistema.</span>
+                            <div style="border: 1px solid #000; padding: 4px 8px; margin-bottom: 8px; font-size: 9px; text-align: center;">
+                                <strong>✓ PAGO REGISTRADO</strong>
                             </div>
                         </t>
                         <t t-if="doc.state == 'cancelled'">
-                            <div style="background: #fdedec; border-left: 5px solid #e74c3c; padding: 10px 15px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
-                                <strong style="color: #c0392b;">CANCELADO</strong>
-                                <span style="color: #922b21;"> — Este recibo ha sido anulado.</span>
+                            <div style="border: 1px solid #000; padding: 4px 8px; margin-bottom: 8px; font-size: 9px; text-align: center;">
+                                <strong>✗ CANCELADO</strong>
                             </div>
                         </t>
 
-                        <!-- ====== DATOS PRINCIPALES ====== -->
-                        <div class="row" style="margin-bottom: 25px;">
+                        <!-- DATOS CLIENTE + DETALLES -->
+                        <div class="row" style="margin-bottom: 8px;">
                             <div class="col-6">
-                                <div style="background: #f8f9fa; border: 1px solid #e5e8eb; border-radius: 6px; padding: 15px; height: 100%;">
-                                    <p style="margin: 0 0 3px 0; font-size: 10px; text-transform: uppercase; color: #95a5a6; letter-spacing: 1px; font-weight: 600;">Cliente</p>
-                                    <p style="margin: 0; font-size: 16px; font-weight: 600; color: #2c3e50;">
-                                        <span t-field="doc.partner_id.name"/>
-                                    </p>
+                                <table style="width: 100%; font-size: 10px;">
+                                    <tr>
+                                        <td style="padding: 1px 0; color: #555; width: 30%;">Cliente:</td>
+                                        <td style="padding: 1px 0; font-weight: 700;"><span t-field="doc.partner_id.name"/></td>
+                                    </tr>
                                     <t t-if="doc.partner_id.vat">
-                                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #7f8c8d;">
-                                            RFC: <span t-field="doc.partner_id.vat"/>
-                                        </p>
+                                        <tr>
+                                            <td style="padding: 1px 0; color: #555;">RFC:</td>
+                                            <td style="padding: 1px 0;"><span t-field="doc.partner_id.vat"/></td>
+                                        </tr>
                                     </t>
                                     <t t-if="doc.partner_id.street">
-                                        <p style="margin: 2px 0 0 0; font-size: 11px; color: #95a5a6;">
-                                            <span t-field="doc.partner_id.street"/>
-                                            <t t-if="doc.partner_id.city">, <span t-field="doc.partner_id.city"/></t>
-                                        </p>
+                                        <tr>
+                                            <td style="padding: 1px 0; color: #555;">Dirección:</td>
+                                            <td style="padding: 1px 0; font-size: 9px;">
+                                                <span t-field="doc.partner_id.street"/>
+                                                <t t-if="doc.partner_id.city">, <span t-field="doc.partner_id.city"/></t>
+                                            </td>
+                                        </tr>
                                     </t>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div style="background: #f8f9fa; border: 1px solid #e5e8eb; border-radius: 6px; padding: 15px; height: 100%;">
-                                    <table style="width: 100%; font-size: 12px;">
-                                        <tr>
-                                            <td style="padding: 3px 0; color: #95a5a6; width: 45%;">Fecha:</td>
-                                            <td style="padding: 3px 0; font-weight: 600;">
-                                                <span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 3px 0; color: #95a5a6;">Recibido por:</td>
-                                            <td style="padding: 3px 0; font-weight: 600;">
-                                                <span t-field="doc.received_by.name"/>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 3px 0; color: #95a5a6;">Forma de pago:</td>
-                                            <td style="padding: 3px 0; font-weight: 600;">Efectivo</td>
-                                        </tr>
-                                        <tr>
-                                            <td style="padding: 3px 0; color: #95a5a6;">Divisa:</td>
-                                            <td style="padding: 3px 0; font-weight: 600;">
-                                                <span t-field="doc.currency_id.name"/>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ====== MONTO PRINCIPAL ====== -->
-                        <div style="border: 2px solid #1a5276; border-radius: 8px; overflow: hidden; margin-bottom: 25px;">
-                            <div style="background: #1a5276; padding: 8px 20px;">
-                                <span style="color: rgba(255,255,255,0.7); font-size: 12px; text-transform: uppercase; letter-spacing: 2px;">Monto Recibido</span>
-                            </div>
-                            <div style="padding: 20px; text-align: center; background: #fafefe;">
-                                <span style="font-size: 42px; font-weight: 800; color: #1a5276; letter-spacing: 1px;">
-                                    <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- ====== PEDIDOS ASOCIADOS ====== -->
-                        <t t-if="doc.sale_order_ids">
-                            <div style="margin-bottom: 25px;">
-                                <p style="font-size: 11px; text-transform: uppercase; color: #1a5276; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 8px; border-bottom: 2px solid #d5dbdb; padding-bottom: 5px;">
-                                    Pedidos de Venta Asociados
-                                </p>
-                                <table style="width: 100%; border-collapse: collapse;">
-                                    <thead>
-                                        <tr>
-                                            <th style="background: #2c3e50; color: white; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left;">Pedido</th>
-                                            <th style="background: #2c3e50; color: white; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left;">Fecha</th>
-                                            <th style="background: #2c3e50; color: white; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <t t-foreach="doc.sale_order_ids" t-as="order">
-                                            <tr t-attf-style="background: {{ 'white' if order_index % 2 == 0 else '#f8f9fa' }};">
-                                                <td style="padding: 8px 12px; border-bottom: 1px solid #ecf0f1; font-weight: 600;">
-                                                    <span t-field="order.name"/>
-                                                </td>
-                                                <td style="padding: 8px 12px; border-bottom: 1px solid #ecf0f1; color: #7f8c8d;">
-                                                    <span t-field="order.date_order" t-options="{'format': 'dd/MM/yyyy'}"/>
-                                                </td>
-                                                <td style="padding: 8px 12px; border-bottom: 1px solid #ecf0f1; text-align: right; font-weight: 600;">
-                                                    <span t-field="order.amount_total" t-options="{'widget': 'monetary', 'display_currency': order.currency_id}"/>
-                                                </td>
-                                            </tr>
-                                        </t>
-                                    </tbody>
-                                    <tfoot>
-                                        <tr>
-                                            <td colspan="2" style="padding: 10px 12px; border-top: 2px solid #2c3e50; font-weight: 700; font-size: 13px;">
-                                                Total de Pedidos
-                                            </td>
-                                            <td style="padding: 10px 12px; border-top: 2px solid #2c3e50; text-align: right; font-weight: 700; font-size: 14px; color: #1a5276;">
-                                                <span t-field="doc.total_orders_amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
-                                            </td>
-                                        </tr>
-                                    </tfoot>
                                 </table>
                             </div>
+                            <div class="col-6">
+                                <table style="width: 100%; font-size: 10px;">
+                                    <tr>
+                                        <td style="padding: 1px 0; color: #555; width: 40%;">Recibido por:</td>
+                                        <td style="padding: 1px 0;"><span t-field="doc.received_by.name"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 1px 0; color: #555;">Forma de pago:</td>
+                                        <td style="padding: 1px 0;">Efectivo</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 1px 0; color: #555;">Divisa:</td>
+                                        <td style="padding: 1px 0;"><span t-field="doc.currency_id.name"/></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- MONTO -->
+                        <div style="border: 2px solid #000; padding: 10px; text-align: center; margin-bottom: 10px;">
+                            <span style="font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: #555;">Monto Recibido</span>
+                            <br/>
+                            <strong style="font-size: 28px; letter-spacing: 1px;">
+                                <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                            </strong>
+                        </div>
+
+                        <!-- PEDIDOS -->
+                        <t t-if="doc.sale_order_ids">
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th style="border-bottom: 2px solid #000; padding: 3px 6px; text-align: left; font-size: 9px; text-transform: uppercase;">Pedido</th>
+                                        <th style="border-bottom: 2px solid #000; padding: 3px 6px; text-align: left; font-size: 9px; text-transform: uppercase;">Fecha</th>
+                                        <th style="border-bottom: 2px solid #000; padding: 3px 6px; text-align: right; font-size: 9px; text-transform: uppercase;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="doc.sale_order_ids" t-as="order">
+                                        <tr>
+                                            <td style="padding: 3px 6px; border-bottom: 1px solid #ccc;"><span t-field="order.name"/></td>
+                                            <td style="padding: 3px 6px; border-bottom: 1px solid #ccc; color: #555;"><span t-field="order.date_order" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                            <td style="padding: 3px 6px; border-bottom: 1px solid #ccc; text-align: right;"><span t-field="order.amount_total" t-options="{'widget': 'monetary', 'display_currency': order.currency_id}"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="2" style="padding: 3px 6px; border-top: 2px solid #000; font-weight: 700;">Total Pedidos</td>
+                                        <td style="padding: 3px 6px; border-top: 2px solid #000; text-align: right; font-weight: 700;">
+                                            <span t-field="doc.total_orders_amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
                         </t>
 
-                        <!-- ====== CONCEPTO / NOTAS ====== -->
+                        <!-- CONCEPTO -->
                         <t t-if="doc.notes">
-                            <div style="margin-bottom: 25px;">
-                                <p style="font-size: 11px; text-transform: uppercase; color: #1a5276; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 8px; border-bottom: 2px solid #d5dbdb; padding-bottom: 5px;">
-                                    Concepto
-                                </p>
-                                <div style="background: #fdfefe; border: 1px solid #e5e8eb; border-radius: 4px; padding: 12px 15px; color: #34495e;">
+                            <div style="margin-bottom: 10px;">
+                                <strong style="font-size: 9px; text-transform: uppercase;">Concepto:</strong>
+                                <div style="border: 1px solid #ccc; padding: 4px 8px; margin-top: 2px; font-size: 10px;">
                                     <span t-field="doc.notes"/>
                                 </div>
                             </div>
                         </t>
 
-                        <!-- ====== PAGO REGISTRADO ====== -->
+                        <!-- PAGO REGISTRADO -->
                         <t t-if="doc.payment_id">
-                            <div style="background: #eafaf1; border: 1px solid #a9dfbf; border-radius: 6px; padding: 12px 15px; margin-bottom: 25px;">
-                                <p style="margin: 0 0 5px 0; font-size: 11px; text-transform: uppercase; color: #1e8449; letter-spacing: 1px; font-weight: 700;">
-                                    Pago Formal Registrado
-                                </p>
-                                <table style="font-size: 12px;">
-                                    <tr>
-                                        <td style="padding: 2px 15px 2px 0; color: #27ae60;">Referencia:</td>
-                                        <td style="font-weight: 600;"><span t-field="doc.payment_id.name"/></td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 2px 15px 2px 0; color: #27ae60;">Fecha:</td>
-                                        <td style="font-weight: 600;"><span t-field="doc.payment_id.date"/></td>
-                                    </tr>
-                                </table>
+                            <div style="border: 1px solid #000; padding: 4px 8px; margin-bottom: 10px; font-size: 9px;">
+                                <strong>Pago registrado:</strong>
+                                <span t-field="doc.payment_id.name"/> — <span t-field="doc.payment_id.date"/>
                             </div>
                         </t>
 
-                        <!-- ====== FIRMAS ====== -->
-                        <div style="margin-top: 40px; margin-bottom: 30px;">
-                            <div class="row">
-                                <div class="col-6 text-center">
-                                    <div style="margin: 0 25px;">
-                                        <t t-if="doc.signature">
-                                            <div style="min-height: 80px; display: flex; align-items: flex-end; justify-content: center;">
-                                                <img t-att-src="image_data_uri(doc.signature)"
-                                                     style="max-height: 80px; max-width: 180px;"/>
-                                            </div>
-                                        </t>
-                                        <t t-else="">
-                                            <div style="min-height: 80px;"/>
-                                        </t>
-                                        <div style="border-top: 2px solid #2c3e50; padding-top: 8px; margin-top: 5px;">
-                                            <t t-if="doc.signature_name">
-                                                <p style="margin: 0; font-weight: 600; font-size: 12px;">
-                                                    <span t-field="doc.signature_name"/>
-                                                </p>
-                                            </t>
-                                            <p style="margin: 0; font-size: 10px; color: #95a5a6; text-transform: uppercase; letter-spacing: 1px;">
-                                                Quien Recibe el Pago
-                                            </p>
-                                        </div>
+                        <!-- FIRMAS -->
+                        <div class="row" style="margin-top: 25px;">
+                            <div class="col-6 text-center">
+                                <t t-if="doc.signature">
+                                    <div style="min-height: 50px;">
+                                        <img t-att-src="image_data_uri(doc.signature)" style="max-height: 50px; max-width: 150px;"/>
                                     </div>
+                                </t>
+                                <t t-else="">
+                                    <div style="min-height: 50px;"/>
+                                </t>
+                                <div style="border-top: 1px solid #000; width: 180px; margin: 0 auto; padding-top: 4px;">
+                                    <t t-if="doc.signature_name">
+                                        <span style="font-size: 9px; font-weight: 600;"><span t-field="doc.signature_name"/></span><br/>
+                                    </t>
+                                    <span style="font-size: 8px; color: #555; text-transform: uppercase;">Quien Recibe</span>
                                 </div>
-                                <div class="col-6 text-center">
-                                    <div style="margin: 0 25px;">
-                                        <div style="min-height: 80px;"/>
-                                        <div style="border-top: 2px solid #2c3e50; padding-top: 8px; margin-top: 5px;">
-                                            <p style="margin: 0; font-size: 10px; color: #95a5a6; text-transform: uppercase; letter-spacing: 1px;">
-                                                Firma / Sello del Cliente
-                                            </p>
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div style="min-height: 50px;"/>
+                                <div style="border-top: 1px solid #000; width: 180px; margin: 0 auto; padding-top: 4px;">
+                                    <span style="font-size: 8px; color: #555; text-transform: uppercase;">Firma / Sello del Cliente</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- ====== AVISO LEGAL ====== -->
-                        <div style="margin-top: 30px; padding: 12px 15px; background: #f4f6f7; border-top: 3px solid #bdc3c7; font-size: 10px; color: #7f8c8d; line-height: 1.5;">
-                            <strong style="color: #5d6d7e;">AVISO:</strong>
-                            Este documento es un comprobante provisional de recepción de pago en efectivo y
-                            <strong>no sustituye una factura ni un comprobante fiscal digital (CFDI).</strong>
-                            El pago aquí registrado será formalizado en el sistema contable de la empresa.
-                            Para aclaraciones, contacte a su asesor de ventas.
+                        <!-- AVISO -->
+                        <div style="margin-top: 15px; border-top: 1px solid #999; padding-top: 6px; font-size: 8px; color: #666; line-height: 1.4;">
+                            <strong>AVISO:</strong> Comprobante provisional de recepción de efectivo.
+                            No sustituye factura ni CFDI. El pago será formalizado en el sistema contable.
                         </div>
 
-                        <!-- ====== PIE DE VERIFICACIÓN ====== -->
-                        <div class="text-center" style="margin-top: 15px; font-size: 9px; color: #bdc3c7;">
-                            <span t-field="doc.name"/> ·
-                            <span t-field="doc.company_id.name"/> ·
-                            Generado: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                        <!-- PIE -->
+                        <div class="text-center" style="margin-top: 6px; font-size: 7px; color: #999;">
+                            <span t-field="doc.name"/> · <span t-field="doc.company_id.name"/> ·
+                            <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
                         </div>
 
                     </div>
