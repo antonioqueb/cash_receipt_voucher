@@ -136,7 +136,7 @@
             <search string="Buscar Recibos">
                 <field name="name"/>
                 <field name="partner_id"/>
-                <field name="sale_order_ids"/>
+                <field name="sale_order_ids" filter_domain="[('sale_order_ids.name', 'ilike', self)]"/>
                 <filter string="Borrador" name="draft"
                         domain="[('state', '=', 'draft')]"/>
                 <filter string="Entregado (Pendiente)" name="delivered"
