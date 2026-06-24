@@ -1,3 +1,7 @@
+import base64
+
+from markupsafe import Markup
+
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 
@@ -147,11 +151,11 @@ class CashReceipt(models.Model):
                 raise UserError(_('Solo se pueden entregar recibos en estado borrador.'))
             rec.state = 'delivered'
             rec.message_post(
-                body=_('Recibo entregado al cliente. <b>Recuerde registrar el pago formalmente en el sistema.</b>'),
+                body=Markup(_('Recibo entregado al cliente. <b>Recuerde registrar el pago formalmente en el sistema.</b>')),
                 message_type='notification',
                 subtype_xmlid='mail.mt_note',
             )
-            # Crear actividad para recordar registrar el pago
+            # Recordatorio al CAJERO (se conserva): registrar el pago formal.
             rec.activity_schedule(
                 'mail.mail_activity_data_todo',
                 summary=_('Registrar pago formal - %s') % rec.name,
@@ -159,6 +163,51 @@ class CashReceipt(models.Model):
                        'Registre el pago formalmente para completar el proceso.') % (
                     rec.amount, rec.currency_id.name),
                 user_id=rec.received_by.id or self.env.user.id,
+            )
+            # Avisos UNIFICADOS en la(s) orden(es): Clara aplica + Lourdes/Zulema
+            # generan la factura. Se suprime con 'skip_payment_notify' cuando el
+            # registro unificado de pagos quiere notificar una sola vez.
+            if not rec.env.context.get('skip_payment_notify'):
+                rec._notify_orders_payment_received()
+
+    def _render_receipt_pdf_bytes(self):
+        """Renderiza el PDF del recibo. Devuelve los bytes o None si falla."""
+        self.ensure_one()
+        try:
+            pdf_content, _ext = self.env['ir.actions.report']._render_qweb_pdf(
+                'cash_receipt_voucher.action_report_cash_receipt', res_ids=self.ids,
+            )
+            return pdf_content
+        except Exception:
+            return None
+
+    def _notify_orders_payment_received(self):
+        """Dispara el motor unificado de avisos (definido en sale_payment_proof)
+        para cada orden asociada, vinculando el PDF del recibo a la actividad."""
+        self.ensure_one()
+        orders = self.sale_order_ids
+        if not orders or not hasattr(orders, '_payment_received_notify'):
+            return
+        pdf_bytes = self._render_receipt_pdf_bytes()
+        for order in orders:
+            attachments = self.env['ir.attachment']
+            if pdf_bytes:
+                attachments = self.env['ir.attachment'].create({
+                    'name': '%s.pdf' % (self.name or 'recibo'),
+                    'type': 'binary',
+                    'datas': base64.b64encode(pdf_bytes),
+                    'res_model': order._name,
+                    'res_id': order.id,
+                    'mimetype': 'application/pdf',
+                })
+            order._payment_received_notify(
+                amount=self.amount,
+                currency=self.currency_id,
+                method_label=_('Efectivo'),
+                reference=self.name,
+                notes=self.notes or '',
+                attachments=attachments or None,
+                post_chatter=True,
             )
 
     def action_cancel(self):

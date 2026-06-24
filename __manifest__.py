@@ -1,6 +1,6 @@
 {
     'name': 'Comprobante de Pago en Efectivo',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Sales',
     'summary': 'Genera recibos de pago en efectivo desde órdenes de venta',
     'description': """
@@ -19,6 +19,9 @@
     'depends': [
         'sale',
         'account',
+        # Motor unificado de avisos de "pago recibido" (Clara aplica / Lourdes
+        # factura). El recibo de efectivo lo reutiliza para no duplicar lógica.
+        'sale_payment_proof',
     ],
     'data': [
         'security/ir.model.access.csv',
