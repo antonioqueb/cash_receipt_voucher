@@ -1,4 +1,5 @@
 import base64
+from datetime import timedelta
 
 from markupsafe import Markup
 
@@ -140,9 +141,49 @@ class CashReceipt(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            self._check_recent_duplicate(vals)
             if vals.get('name', _('Nuevo')) == _('Nuevo'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('cash.receipt') or _('Nuevo')
         return super().create(vals_list)
+
+    @api.model
+    def _check_recent_duplicate(self, vals):
+        """Evita recibos duplicados por doble-clic: bloquea crear un recibo
+        idéntico (mismo cliente, monto, divisa y pedidos) creado hace menos de un
+        minuto. El registro unificado lo omite con 'skip_duplicate_check'."""
+        if self.env.context.get('skip_duplicate_check'):
+            return
+        partner_id = vals.get('partner_id')
+        amount = vals.get('amount')
+        if not partner_id or not amount:
+            return
+        order_ids = []
+        for cmd in (vals.get('sale_order_ids') or []):
+            if not isinstance(cmd, (list, tuple)) or not cmd:
+                continue
+            if cmd[0] == 6 and len(cmd) > 2:
+                order_ids = list(cmd[2] or [])
+            elif cmd[0] == 4 and len(cmd) > 1:
+                order_ids.append(cmd[1])
+        threshold = fields.Datetime.now() - timedelta(seconds=60)
+        domain = [
+            ('partner_id', '=', partner_id),
+            ('amount', '=', amount),
+            ('state', '!=', 'cancelled'),
+            ('create_date', '>=', threshold),
+        ]
+        if vals.get('currency_id'):
+            domain.append(('currency_id', '=', vals['currency_id']))
+        if order_ids:
+            domain.append(('sale_order_ids', 'in', order_ids))
+        dup = self.search(domain, limit=1)
+        if dup:
+            raise UserError(_(
+                'Ya se registró un recibo de efectivo idéntico (%(name)s) hace '
+                'menos de un minuto. Para evitar duplicados no se creará otro.\n'
+                'Si de verdad necesitas un segundo recibo por el mismo monto, '
+                'espera un minuto o cancela el anterior.'
+            ) % {'name': dup.name})
 
     def action_deliver(self):
         """Marcar como entregado al cliente"""

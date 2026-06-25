@@ -9,9 +9,6 @@
 
                         <!-- ═══════ ENCABEZADO ═══════ -->
                         <div style="text-align: center; padding: 15px 0 12px; border-top: 6px solid #000; border-bottom: 1px solid #000;">
-                            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 4px; color: #666; margin-bottom: 4px;">
-                                Comprobante Provisional
-                            </div>
                             <h1 style="font-size: 22px; font-weight: 800; margin: 0; letter-spacing: 2px; text-transform: uppercase;">
                                 Recibo de Pago en Efectivo
                             </h1>
@@ -43,11 +40,6 @@
                         <t t-if="doc.state == 'draft'">
                             <div style="border: 2px dashed #999; padding: 8px; text-align: center; margin-bottom: 18px;">
                                 <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #666; font-weight: 700;">▫ Borrador — Documento no válido ▫</span>
-                            </div>
-                        </t>
-                        <t t-if="doc.state == 'delivered'">
-                            <div style="border: 2px solid #444; padding: 8px; text-align: center; margin-bottom: 18px; background: #f5f5f5;">
-                                <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">Entregado — Pendiente de Registro Formal</span>
                             </div>
                         </t>
                         <t t-if="doc.state == 'paid'">
@@ -236,9 +228,8 @@
                         <!-- ═══════ AVISO LEGAL ═══════ -->
                         <div style="margin-top: 25px; padding: 10px 14px; border: 1px solid #ccc; background: #fafafa; font-size: 9px; color: #666; line-height: 1.5;">
                             <strong style="color: #333;">AVISO IMPORTANTE:</strong>
-                            Este documento es un comprobante provisional de recepción de pago en efectivo.
+                            Este recibo ampara la recepción del pago en efectivo aquí indicado.
                             <strong>No sustituye una factura ni un Comprobante Fiscal Digital por Internet (CFDI).</strong>
-                            El pago aquí consignado será registrado formalmente en el sistema contable de la empresa.
                             Para cualquier aclaración, contacte a su asesor de ventas.
                         </div>
 

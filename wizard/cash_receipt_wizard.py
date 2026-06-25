@@ -61,6 +61,11 @@ class CashReceiptWizard(models.TransientModel):
     # Firma
     signature = fields.Binary(string='Firma / Sello')
     signature_name = fields.Char(string='Nombre del Firmante')
+    # Anti doble-clic: una vez generado, no se vuelve a crear el recibo.
+    state = fields.Selection(
+        [('draft', 'Borrador'), ('done', 'Generado')],
+        default='draft',
+    )
 
     @api.depends('partner_id')
     def _compute_commercial_partner_id(self):
@@ -102,10 +107,13 @@ class CashReceiptWizard(models.TransientModel):
             if wiz.amount <= 0:
                 raise ValidationError(_('El monto debe ser mayor a cero.'))
 
-    def action_generate_receipt(self):
-        """Generar el recibo de efectivo"""
+    def _create_receipt(self):
+        """Crea el recibo aplicando el guard anti doble-clic."""
         self.ensure_one()
-
+        if self.state == 'done':
+            raise UserError(_(
+                'Este recibo ya fue generado en esta ventana. Ciérrala para continuar.'
+            ))
         receipt = self.env['cash.receipt'].create({
             'partner_id': self.partner_id.id,
             'sale_order_ids': [(6, 0, self.sale_order_ids.ids)],
@@ -115,10 +123,14 @@ class CashReceiptWizard(models.TransientModel):
             'signature': self.signature,
             'signature_name': self.signature_name,
         })
-
         if self.deliver_immediately:
             receipt.action_deliver()
+        self.state = 'done'
+        return receipt
 
+    def action_generate_receipt(self):
+        """Generar el recibo de efectivo"""
+        receipt = self._create_receipt()
         # Retornar acción para ver el recibo e imprimir
         return {
             'type': 'ir.actions.act_window',
@@ -131,19 +143,5 @@ class CashReceiptWizard(models.TransientModel):
 
     def action_generate_and_print(self):
         """Generar e imprimir inmediatamente"""
-        self.ensure_one()
-
-        receipt = self.env['cash.receipt'].create({
-            'partner_id': self.partner_id.id,
-            'sale_order_ids': [(6, 0, self.sale_order_ids.ids)],
-            'amount': self.amount,
-            'currency_id': self.currency_id.id,
-            'notes': self.notes,
-            'signature': self.signature,
-            'signature_name': self.signature_name,
-        })
-
-        if self.deliver_immediately:
-            receipt.action_deliver()
-
+        receipt = self._create_receipt()
         return receipt.action_print_receipt()
