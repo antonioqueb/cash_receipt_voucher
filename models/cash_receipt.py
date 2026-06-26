@@ -211,7 +211,13 @@ class CashReceipt(models.Model):
     # ------------------------------------------------------------------
     def _can_adjust_internal(self):
         """¿El usuario actual puede ajustar el efectivo real interno?"""
-        return self.env.user.has_group(CASH_INTERNAL_GROUP)
+        return self.env.user.has_group(CASH_INTERNAL_EDIT_GROUP)
+
+    @api.depends_context('uid')
+    def _compute_can_adjust_internal(self):
+        can = self.env.user.has_group(CASH_INTERNAL_EDIT_GROUP)
+        for rec in self:
+            rec.can_adjust_internal = can
 
     @staticmethod
     def _amounts_differ(a, b, currency=None):
