@@ -7,7 +7,9 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools import float_compare, float_is_zero
 
-CASH_INTERNAL_GROUP = 'cash_receipt_voucher.group_cash_internal_control'
+# Nivel 1 (consulta): ve el control interno. Nivel 2 (edición): puede ajustarlo.
+CASH_INTERNAL_VIEW_GROUP = 'cash_receipt_voucher.group_cash_internal_control'
+CASH_INTERNAL_EDIT_GROUP = 'cash_receipt_voucher.group_cash_internal_control_edit'
 
 
 class CashReceipt(models.Model):
@@ -128,6 +130,12 @@ class CashReceipt(models.Model):
         string='Fecha de Ajuste Interno',
         readonly=True,
         copy=False,
+    )
+    can_adjust_internal = fields.Boolean(
+        string='Puede Ajustar Efectivo Real',
+        compute='_compute_can_adjust_internal',
+        help='Técnico: verdadero si el usuario tiene el nivel "Ajuste de '
+             'Efectivo Real". Controla el solo-lectura de los campos internos.',
     )
 
     # Vinculación con pago formal

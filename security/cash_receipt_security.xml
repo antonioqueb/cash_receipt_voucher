@@ -10,25 +10,35 @@
             <field name="sequence">90</field>
         </record>
 
-        <!-- Privilegio (Odoo 19 agrupa los res.groups bajo res.groups.privilege) -->
+        <!-- Privilegio: agrupa los niveles y los muestra como SELECTOR en el
+             formulario del usuario (Odoo 19). -->
         <record id="privilege_cash_internal_control" model="res.groups.privilege">
             <field name="name">Control Interno de Efectivo</field>
             <field name="category_id" ref="module_category_cash_control"/>
             <field name="sequence">90</field>
         </record>
 
-        <!-- Grupo dedicado: solo quien lo tenga puede ajustar el efectivo real
-             interno y ver el reporte de control interno. No hereda de vendedor
-             ni de gerente; se asigna manualmente a los perfiles autorizados. -->
+        <!-- Nivel 1 — Consulta: ve el efectivo real y el reporte de control
+             interno en SOLO LECTURA. -->
         <record id="group_cash_internal_control" model="res.groups">
-            <field name="name">Control Interno de Efectivo</field>
+            <field name="name">Consulta</field>
             <field name="privilege_id" ref="privilege_cash_internal_control"/>
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
-            <field name="comment">Permite ver y ajustar el "Efectivo Real (Control
-                Interno)" de los recibos de efectivo, independiente del monto
-                oficial, y acceder al Reporte de Control Interno de Efectivo. El
-                monto oficial, el recibo PDF, el estado de cuenta y la contabilidad
-                no se ven afectados.</field>
+            <field name="comment">Puede ver el "Efectivo Real (Control Interno)",
+                la diferencia de caja y el Reporte de Control Interno de Efectivo,
+                pero NO puede modificarlos.</field>
+        </record>
+
+        <!-- Nivel 2 — Ajuste: ve y además puede MODIFICAR el efectivo real.
+             Incluye el nivel de Consulta. -->
+        <record id="group_cash_internal_control_edit" model="res.groups">
+            <field name="name">Ajuste de Efectivo Real</field>
+            <field name="privilege_id" ref="privilege_cash_internal_control"/>
+            <field name="implied_ids" eval="[(4, ref('group_cash_internal_control'))]"/>
+            <field name="comment">Puede ajustar el "Efectivo Real (Control Interno)"
+                de los recibos, independiente del monto oficial. El monto oficial,
+                el recibo PDF, el estado de cuenta y la contabilidad no se ven
+                afectados.</field>
         </record>
 
     </data>
