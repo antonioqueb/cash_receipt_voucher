@@ -460,6 +460,17 @@ class CashReceipt(models.Model):
         """Imprimir el recibo"""
         return self.env.ref('cash_receipt_voucher.action_report_cash_receipt').report_action(self)
 
+    def action_print_internal_control(self):
+        """Imprimir el reporte de control interno (Oficial vs Real vs Diferencia).
+        Restringido por el botón al grupo de control interno."""
+        if not self.env.user.has_group(CASH_INTERNAL_VIEW_GROUP):
+            raise UserError(_(
+                'No tiene permisos para imprimir el reporte de control interno '
+                'de efectivo.'))
+        return self.env.ref(
+            'cash_receipt_voucher.action_report_cash_internal_control'
+        ).report_action(self)
+
     @api.onchange('sale_order_ids')
     def _onchange_sale_order_ids(self):
         if self.sale_order_ids:

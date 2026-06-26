@@ -2,16 +2,14 @@
 <odoo>
 
     <!-- Acción de reporte PDF: Control Interno de Efectivo.
-         Restringido al grupo. Se ejecuta sobre los recibos seleccionados. -->
+         SIN binding al menú Imprimir (para no exponerlo a perfiles sin permiso):
+         se imprime desde un botón restringido al grupo en el recibo. -->
     <record id="action_report_cash_internal_control" model="ir.actions.report">
         <field name="name">Control Interno de Efectivo</field>
         <field name="model">cash.receipt</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">cash_receipt_voucher.report_cash_internal_control</field>
         <field name="report_file">cash_receipt_voucher.report_cash_internal_control</field>
-        <field name="binding_model_id" ref="model_cash_receipt"/>
-        <field name="binding_type">report</field>
-        <field name="groups_id" eval="[(4, ref('cash_receipt_voucher.group_cash_internal_control'))]"/>
     </record>
 
     <template id="report_cash_internal_control">

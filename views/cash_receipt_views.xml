@@ -18,6 +18,11 @@
                             type="object"
                             class="btn-primary"
                             invisible="state not in ('delivered', 'paid')"/>
+                    <button name="action_print_internal_control"
+                            string="Imprimir Control Interno"
+                            type="object"
+                            class="btn-secondary"
+                            groups="cash_receipt_voucher.group_cash_internal_control"/>
                     <button name="action_register_payment"
                             string="Registrar Pago Formal"
                             type="object"
