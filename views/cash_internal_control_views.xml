@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         REPORTE DE CONTROL INTERNO DE EFECTIVO
+         Vista paralela y restringida: Oficial vs Real vs Diferencia.
+         Solo visible para el grupo 'Control Interno de Efectivo'.
+         ================================================================ -->
+
+    <record id="cash_internal_control_view_list" model="ir.ui.view">
+        <field name="name">cash.receipt.internal.control.list</field>
+        <field name="model">cash.receipt</field>
+        <field name="arch" type="xml">
+            <list string="Control Interno de Efectivo"
+                  create="false"
+                  decoration-danger="amount_internal_diff &gt; 0"
+                  decoration-success="amount_internal_diff &lt; 0"
+                  decoration-muted="state == 'cancelled'">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="amount" sum="Oficial" string="Oficial"/>
+                <field name="amount_internal" sum="Efectivo Real" string="Efectivo Real"/>
+                <field name="amount_internal_diff" sum="Diferencia" string="Dif. Caja"/>
+                <field name="internal_diff_reason" string="Motivo" optional="show"/>
+                <field name="internal_adjusted_by" string="Ajustado por" optional="show"/>
+                <field name="internal_adjusted_date" string="Fecha ajuste" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'delivered'"
+                       decoration-success="state == 'paid'"
+                       decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="cash_internal_control_view_pivot" model="ir.ui.view">
+        <field name="name">cash.receipt.internal.control.pivot</field>
+        <field name="model">cash.receipt</field>
+        <field name="arch" type="xml">
+            <pivot string="Control Interno de Efectivo">
+                <field name="partner_id" type="row"/>
+                <field name="amount" type="measure"/>
+                <field name="amount_internal" type="measure"/>
+                <field name="amount_internal_diff" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="cash_internal_control_view_search" model="ir.ui.view">
+        <field name="model">cash.receipt</field>
+        <field name="arch" type="xml">
+            <search string="Control Interno">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="internal_adjusted_by"/>
+                <filter string="Solo con diferencia" name="only_diff"
+                        domain="[('has_internal_diff', '=', True)]"/>
+                <filter string="Faltante de caja" name="shortage"
+                        domain="[('amount_internal_diff', '&gt;', 0)]"/>
+                <filter string="Sobrante de caja" name="overage"
+                        domain="[('amount_internal_diff', '&lt;', 0)]"/>
+                <separator/>
+                <filter string="No cancelados" name="not_cancelled"
+                        domain="[('state', '!=', 'cancelled')]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Cliente" name="group_partner"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter string="Ajustado por" name="group_adjuster"
+                            context="{'group_by': 'internal_adjusted_by'}"/>
+                    <filter string="Mes" name="group_date"
+                            context="{'group_by': 'date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_cash_internal_control" model="ir.actions.act_window">
+        <field name="name">Control Interno de Efectivo</field>
+        <field name="res_model">cash.receipt</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="search_view_id" ref="cash_internal_control_view_search"/>
+        <field name="domain">[('state', '!=', 'cancelled')]</field>
+        <field name="context">{'search_default_not_cancelled': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin recibos para el control interno</p>
+            <p>Aquí se concentra el efectivo realmente ingresado a caja frente al
+               monto oficial de cada recibo, junto con la diferencia.</p>
+        </field>
+    </record>
+    <!-- La acción de lista usa la vista de control interno (con los campos
+         Oficial/Real/Diferencia), no la lista genérica de recibos. -->
+    <record id="action_cash_internal_control_view_list" model="ir.actions.act_window.view">
+        <field name="sequence" eval="1"/>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="cash_internal_control_view_list"/>
+        <field name="act_window_id" ref="action_cash_internal_control"/>
+    </record>
+
+    <menuitem id="menu_cash_internal_control"
+              name="Control Interno de Efectivo"
+              parent="menu_cash_receipt_root"
+              action="action_cash_internal_control"
+              groups="cash_receipt_voucher.group_cash_internal_control"
+              sequence="20"/>
+
+</odoo>

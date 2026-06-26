@@ -5,6 +5,9 @@ from markupsafe import Markup
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError
+from odoo.tools import float_compare, float_is_zero
+
+CASH_INTERNAL_GROUP = 'cash_receipt_voucher.group_cash_internal_control'
 
 
 class CashReceipt(models.Model):
@@ -78,6 +81,55 @@ class CashReceipt(models.Model):
     signature = fields.Binary(string='Firma / Sello')
     signature_name = fields.Char(string='Nombre del Firmante')
 
+    # ------------------------------------------------------------------
+    # CONTROL INTERNO DE EFECTIVO (doble control)
+    # ------------------------------------------------------------------
+    # 'amount' es el monto OFICIAL: el que ve el cliente, el que va al recibo
+    # PDF, al estado de cuenta y a la contabilidad. NUNCA se altera aquí.
+    # 'amount_internal' es una capa PARALELA y RESTRINGIDA: el efectivo que
+    # realmente se controló/ingresó a caja. Por defecto es igual al oficial y
+    # solo el grupo 'Control Interno de Efectivo' puede ajustarlo. No impacta
+    # ningún documento oficial: vive solo en el reporte de control interno.
+    amount_internal = fields.Monetary(
+        string='Efectivo Real (Control Interno)',
+        currency_field='currency_id',
+        copy=False,
+        tracking=True,
+        help='Efectivo realmente ingresado/controlado en caja. Por defecto es '
+             'igual al Monto Recibido. Solo el grupo "Control Interno de '
+             'Efectivo" puede modificarlo. No afecta el recibo, el estado de '
+             'cuenta ni la contabilidad: es un control interno paralelo.',
+    )
+    amount_internal_diff = fields.Monetary(
+        string='Diferencia de Caja',
+        compute='_compute_amount_internal_diff',
+        store=True,
+        currency_field='currency_id',
+        help='Monto Oficial menos Efectivo Real. '
+             'Positivo = faltante de caja; negativo = sobrante.',
+    )
+    has_internal_diff = fields.Boolean(
+        string='Tiene Diferencia',
+        compute='_compute_amount_internal_diff',
+        store=True,
+    )
+    internal_diff_reason = fields.Char(
+        string='Motivo del Ajuste Interno',
+        copy=False,
+        tracking=True,
+    )
+    internal_adjusted_by = fields.Many2one(
+        'res.users',
+        string='Ajuste Interno por',
+        readonly=True,
+        copy=False,
+    )
+    internal_adjusted_date = fields.Datetime(
+        string='Fecha de Ajuste Interno',
+        readonly=True,
+        copy=False,
+    )
+
     # Vinculación con pago formal
     payment_id = fields.Many2one(
         'account.payment',
@@ -138,13 +190,85 @@ class CashReceipt(models.Model):
                 ('id', '!=', rec.id if rec.id else 0),
             ])
 
+    @api.depends('amount', 'amount_internal', 'currency_id')
+    def _compute_amount_internal_diff(self):
+        for rec in self:
+            rounding = rec.currency_id.rounding or 0.01
+            diff = (rec.amount or 0.0) - (rec.amount_internal or 0.0)
+            rec.amount_internal_diff = diff
+            rec.has_internal_diff = not float_is_zero(diff, precision_rounding=rounding)
+
+    # ------------------------------------------------------------------
+    # Control interno: helpers de permiso/mirror
+    # ------------------------------------------------------------------
+    def _can_adjust_internal(self):
+        """¿El usuario actual puede ajustar el efectivo real interno?"""
+        return self.env.user.has_group(CASH_INTERNAL_GROUP)
+
+    @staticmethod
+    def _amounts_differ(a, b, currency=None):
+        rounding = (currency.rounding if currency else 0.0) or 0.01
+        return float_compare(a or 0.0, b or 0.0, precision_rounding=rounding) != 0
+
+    @api.onchange('amount')
+    def _onchange_amount_mirror_internal(self):
+        """Mientras el efectivo real siga 'en espejo' con el oficial (sin ajuste
+        interno), seguir el monto oficial. Si ya divergió, no se toca."""
+        for rec in self:
+            origin_amount = rec._origin.amount if rec._origin else 0.0
+            if not rec.amount_internal or not rec._amounts_differ(
+                    rec.amount_internal, origin_amount, rec.currency_id):
+                rec.amount_internal = rec.amount
+
     @api.model_create_multi
     def create(self, vals_list):
+        can_adjust = self._can_adjust_internal()
         for vals in vals_list:
             self._check_recent_duplicate(vals)
             if vals.get('name', _('Nuevo')) == _('Nuevo'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('cash.receipt') or _('Nuevo')
-        return super().create(vals_list)
+            # Espejo por defecto: el efectivo real arranca igual al oficial.
+            if vals.get('amount_internal') in (None, False):
+                vals['amount_internal'] = vals.get('amount', 0.0)
+            elif not can_adjust:
+                # Intento de nacer divergente sin permiso: forzar espejo.
+                vals['amount_internal'] = vals.get('amount', 0.0)
+                vals.pop('internal_diff_reason', None)
+        records = super().create(vals_list)
+        # Sellar auditoría de los que nacieron ya ajustados (solo grupo).
+        for rec in records:
+            if can_adjust and rec._amounts_differ(rec.amount_internal, rec.amount, rec.currency_id):
+                rec.internal_adjusted_by = self.env.user
+                rec.internal_adjusted_date = fields.Datetime.now()
+        return records
+
+    def write(self, vals):
+        adjusting = 'amount_internal' in vals or 'internal_diff_reason' in vals
+        if adjusting and not self._can_adjust_internal():
+            # Permitido solo si en realidad no cambia el valor real interno.
+            for rec in self:
+                if 'amount_internal' in vals and rec._amounts_differ(
+                        vals['amount_internal'], rec.amount_internal, rec.currency_id):
+                    raise UserError(_(
+                        'No tiene permisos para modificar el efectivo real '
+                        '(control interno) del recibo %(name)s.\n'
+                        'Se requiere pertenecer al grupo '
+                        '"Control Interno de Efectivo".'
+                    ) % {'name': rec.name})
+                if 'internal_diff_reason' in vals and (vals.get('internal_diff_reason') or '') != (rec.internal_diff_reason or ''):
+                    raise UserError(_(
+                        'No tiene permisos para registrar el motivo del ajuste '
+                        'interno. Se requiere el grupo "Control Interno de '
+                        'Efectivo".'))
+        res = super().write(vals)
+        if 'amount_internal' in vals and self._can_adjust_internal():
+            stamp = {
+                'internal_adjusted_by': self.env.user.id,
+                'internal_adjusted_date': fields.Datetime.now(),
+            }
+            for rec in self:
+                super(CashReceipt, rec).write(stamp)
+        return res
 
     @api.model
     def _check_recent_duplicate(self, vals):

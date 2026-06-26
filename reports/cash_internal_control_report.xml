@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Acción de reporte PDF: Control Interno de Efectivo.
+         Restringido al grupo. Se ejecuta sobre los recibos seleccionados. -->
+    <record id="action_report_cash_internal_control" model="ir.actions.report">
+        <field name="name">Control Interno de Efectivo</field>
+        <field name="model">cash.receipt</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cash_receipt_voucher.report_cash_internal_control</field>
+        <field name="report_file">cash_receipt_voucher.report_cash_internal_control</field>
+        <field name="binding_model_id" ref="model_cash_receipt"/>
+        <field name="binding_type">report</field>
+        <field name="groups_id" eval="[(4, ref('cash_receipt_voucher.group_cash_internal_control'))]"/>
+    </record>
+
+    <template id="report_cash_internal_control">
+        <t t-call="web.html_container">
+            <t t-call="web.internal_layout">
+                <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000;">
+
+                    <div class="row border-bottom pb-2 mb-3" style="border-color:#000 !important;">
+                        <div class="col-8">
+                            <h4 class="text-uppercase mb-0" style="font-weight:800; letter-spacing:1px;">
+                                Control Interno de Efectivo
+                            </h4>
+                            <div style="font-size:9px; color:#666;">Documento interno — no entregar al cliente</div>
+                        </div>
+                        <div class="col-4 text-end" style="font-size:12px; color:#505050;">
+                            Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                        </div>
+                    </div>
+
+                    <t t-set="total_official" t-value="0.0"/>
+                    <t t-set="total_real" t-value="0.0"/>
+                    <t t-set="total_diff" t-value="0.0"/>
+                    <t t-set="rep_currency" t-value="docs[:1].currency_id or env.company.currency_id"/>
+
+                    <table class="table table-sm" style="width:100%; font-size:9px; border-collapse:collapse;">
+                        <thead>
+                            <tr style="background-color:#2f2f2f; color:#fff;">
+                                <th style="color:#fff;">Recibo</th>
+                                <th style="color:#fff;">Fecha</th>
+                                <th style="color:#fff;">Cliente</th>
+                                <th class="text-end" style="color:#fff;">Oficial</th>
+                                <th class="text-end" style="color:#fff;">Efectivo Real</th>
+                                <th class="text-end" style="color:#fff;">Diferencia</th>
+                                <th style="color:#fff;">Motivo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs" t-as="doc">
+                                <t t-set="total_official" t-value="total_official + doc.amount"/>
+                                <t t-set="total_real" t-value="total_real + doc.amount_internal"/>
+                                <t t-set="total_diff" t-value="total_diff + doc.amount_internal_diff"/>
+                                <tr style="page-break-inside:avoid;">
+                                    <td><strong t-field="doc.name"/></td>
+                                    <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                    <td t-field="doc.partner_id.name"/>
+                                    <td class="text-end" style="white-space:nowrap;">
+                                        <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                    </td>
+                                    <td class="text-end" style="white-space:nowrap;">
+                                        <span t-field="doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                    </td>
+                                    <td class="text-end"
+                                        t-attf-style="white-space:nowrap; font-weight:700; color:#{'b00020' if doc.amount_internal_diff &gt; 0 else '0a7d28' if doc.amount_internal_diff &lt; 0 else '000'};">
+                                        <span t-field="doc.amount_internal_diff" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                    </td>
+                                    <td t-field="doc.internal_diff_reason"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background-color:#f2f2f2; font-weight:800;">
+                                <td colspan="3" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Totales</td>
+                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                    <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                    <span t-esc="total_real" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                    <span t-esc="total_diff" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                                <td style="border:1px solid #d8d8d8;"/>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <div style="margin-top:18px; border:1px solid #ccc; padding:8px; background-color:#fafafa; font-size:9px; color:#555;">
+                        <strong style="color:#333;">CONFIDENCIAL.</strong>
+                        Este reporte refleja el efectivo realmente controlado en caja frente al
+                        monto oficial de cada recibo. El monto oficial es el único que aparece
+                        en el recibo del cliente, el estado de cuenta y la contabilidad.
+                    </div>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+</odoo>

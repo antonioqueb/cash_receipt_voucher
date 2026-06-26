@@ -70,6 +70,33 @@
                             <field name="receipt_count" string="Otros Recibos"/>
                             <field name="payment_id" readonly="1"/>
                             <field name="company_id" invisible="1"/>
+                            <field name="has_internal_diff" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- ============ CONTROL INTERNO DE EFECTIVO ============ -->
+                    <!-- Visible SOLO para el grupo dedicado. El monto oficial
+                         (arriba) no se altera; esto es una capa paralela. -->
+                    <group string="🔒 Control Interno de Efectivo"
+                           groups="cash_receipt_voucher.group_cash_internal_control">
+                        <div class="alert alert-info" colspan="2" role="status"
+                             invisible="not has_internal_diff">
+                            <strong>Hay una diferencia de caja registrada.</strong>
+                            El monto oficial (recibo, estado de cuenta y contabilidad)
+                            sigue siendo el "Monto Recibido". Esta diferencia es
+                            interna y no se muestra al cliente.
+                        </div>
+                        <group>
+                            <field name="amount_internal"/>
+                            <field name="amount_internal_diff" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="internal_diff_reason"
+                                   placeholder="Motivo del faltante/sobrante (opcional)"/>
+                            <field name="internal_adjusted_by" readonly="1"
+                                   invisible="not internal_adjusted_by"/>
+                            <field name="internal_adjusted_date" readonly="1"
+                                   invisible="not internal_adjusted_date"/>
                         </group>
                     </group>
                     <notebook>
@@ -115,6 +142,14 @@
                 <field name="partner_id"/>
                 <field name="sale_order_ids" widget="many2many_tags"/>
                 <field name="amount" sum="Total Recibido"/>
+                <field name="amount_internal" sum="Total Real (Interno)"
+                       optional="show" string="Efectivo Real"
+                       groups="cash_receipt_voucher.group_cash_internal_control"/>
+                <field name="amount_internal_diff" sum="Diferencia"
+                       optional="show" string="Dif. Caja"
+                       decoration-danger="amount_internal_diff &gt; 0"
+                       decoration-success="amount_internal_diff &lt; 0"
+                       groups="cash_receipt_voucher.group_cash_internal_control"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state"
                        widget="badge"
@@ -146,6 +181,9 @@
                 <separator/>
                 <filter string="Sin Pago Formal" name="no_payment"
                         domain="[('payment_id', '=', False), ('state', '=', 'delivered')]"/>
+                <filter string="Con Diferencia de Caja" name="internal_diff"
+                        domain="[('has_internal_diff', '=', True)]"
+                        groups="cash_receipt_voucher.group_cash_internal_control"/>
                     <filter string="Cliente" name="group_partner"
                             context="{'group_by': 'partner_id'}"/>
                     <filter string="Estado" name="group_state"
