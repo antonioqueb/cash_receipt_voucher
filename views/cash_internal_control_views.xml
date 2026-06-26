@@ -49,6 +49,7 @@
     </record>
 
     <record id="cash_internal_control_view_search" model="ir.ui.view">
+        <field name="name">cash.receipt.internal.control.search</field>
         <field name="model">cash.receipt</field>
         <field name="arch" type="xml">
             <search string="Control Interno">
@@ -64,14 +65,13 @@
                 <separator/>
                 <filter string="No cancelados" name="not_cancelled"
                         domain="[('state', '!=', 'cancelled')]"/>
-                <group expand="0" string="Agrupar por">
-                    <filter string="Cliente" name="group_partner"
-                            context="{'group_by': 'partner_id'}"/>
-                    <filter string="Ajustado por" name="group_adjuster"
-                            context="{'group_by': 'internal_adjusted_by'}"/>
-                    <filter string="Mes" name="group_date"
-                            context="{'group_by': 'date:month'}"/>
-                </group>
+                <separator/>
+                <filter string="Cliente" name="group_partner"
+                        context="{'group_by': 'partner_id'}"/>
+                <filter string="Ajustado por" name="group_adjuster"
+                        context="{'group_by': 'internal_adjusted_by'}"/>
+                <filter string="Mes" name="group_date"
+                        context="{'group_by': 'date:month'}"/>
             </search>
         </field>
     </record>
