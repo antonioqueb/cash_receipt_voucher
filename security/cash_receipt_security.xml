@@ -1,25 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
-<odoo noupdate="0">
+<odoo>
+    <data>
 
-    <!-- Categoría dedicada para el permiso de control interno de efectivo -->
-    <record id="module_category_cash_control" model="ir.module.category">
-        <field name="name">Control Interno de Efectivo</field>
-        <field name="description">Gestión del control interno (efectivo realmente
-            ingresado a caja) sobre los recibos de efectivo.</field>
-        <field name="sequence">90</field>
-    </record>
+        <!-- Categoría dedicada para el permiso de control interno de efectivo -->
+        <record id="module_category_cash_control" model="ir.module.category">
+            <field name="name">Control Interno de Efectivo</field>
+            <field name="description">Gestión del control interno (efectivo
+                realmente ingresado a caja) sobre los recibos de efectivo.</field>
+            <field name="sequence">90</field>
+        </record>
 
-    <!-- Grupo dedicado: solo quien lo tenga puede ajustar el efectivo real
-         interno y ver el reporte de control interno. No hereda de vendedor ni
-         de gerente: se asigna manualmente a los perfiles autorizados. -->
-    <record id="group_cash_internal_control" model="res.groups">
-        <field name="name">Control Interno de Efectivo</field>
-        <field name="category_id" ref="module_category_cash_control"/>
-        <field name="comment">Permite ver y ajustar el "Efectivo Real (Control
-            Interno)" de los recibos de efectivo, independiente del monto oficial,
-            y acceder al Reporte de Control Interno de Efectivo. El monto oficial,
-            el recibo PDF, el estado de cuenta y la contabilidad no se ven
-            afectados.</field>
-    </record>
+        <!-- Privilegio (Odoo 19 agrupa los res.groups bajo res.groups.privilege) -->
+        <record id="privilege_cash_internal_control" model="res.groups.privilege">
+            <field name="name">Control Interno de Efectivo</field>
+            <field name="category_id" ref="module_category_cash_control"/>
+            <field name="sequence">90</field>
+        </record>
 
+        <!-- Grupo dedicado: solo quien lo tenga puede ajustar el efectivo real
+             interno y ver el reporte de control interno. No hereda de vendedor
+             ni de gerente; se asigna manualmente a los perfiles autorizados. -->
+        <record id="group_cash_internal_control" model="res.groups">
+            <field name="name">Control Interno de Efectivo</field>
+            <field name="privilege_id" ref="privilege_cash_internal_control"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Permite ver y ajustar el "Efectivo Real (Control
+                Interno)" de los recibos de efectivo, independiente del monto
+                oficial, y acceder al Reporte de Control Interno de Efectivo. El
+                monto oficial, el recibo PDF, el estado de cuenta y la contabilidad
+                no se ven afectados.</field>
+        </record>
+
+    </data>
 </odoo>
