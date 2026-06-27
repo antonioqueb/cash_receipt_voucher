@@ -41,9 +41,9 @@
                                 <th style="color:#fff;">Pedido</th>
                                 <th style="color:#fff;">Cliente</th>
                                 <th style="color:#fff;">Fecha</th>
-                                <th class="text-end" style="color:#fff;">Pagado</th>
-                                <th class="text-end" style="color:#fff;">Oficial</th>
-                                <th class="text-end" style="color:#fff;">Diferencia</th>
+                                <th class="text-end" style="color:#fff;">Cobrado</th>
+                                <th class="text-end" style="color:#fff;">A cuenta</th>
+                                <th class="text-end" style="color:#fff;">En caja</th>
                                 <th class="text-end" style="color:#fff;">Pendiente por cobrar</th>
                             </tr>
                         </thead>
@@ -51,21 +51,21 @@
                             <t t-foreach="docs" t-as="doc">
                                 <t t-set="total_official" t-value="total_official + doc.amount"/>
                                 <t t-set="total_real" t-value="total_real + doc.amount_internal"/>
-                                <t t-set="total_diff" t-value="total_diff + doc.amount_internal_diff"/>
+                                <t t-set="total_diff" t-value="total_diff + (doc.amount - doc.amount_internal)"/>
                                 <tr style="page-break-inside:avoid;">
                                     <td><strong t-field="doc.name"/></td>
                                     <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
                                     <td><span t-field="doc.partner_id.name"/></td>
                                     <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
                                     <td class="text-end" style="white-space:nowrap;">
-                                        <span t-field="doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
-                                    </td>
-                                    <td class="text-end" style="white-space:nowrap;">
                                         <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
                                     </td>
+                                    <td class="text-end" style="white-space:nowrap;">
+                                        <span t-field="doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                    </td>
                                     <td class="text-end"
-                                        t-attf-style="white-space:nowrap; font-weight:700; color:#{'b00020' if doc.amount_internal_diff &gt; 0 else '0a7d28' if doc.amount_internal_diff &lt; 0 else '000'};">
-                                        <span t-field="doc.amount_internal_diff" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                        t-attf-style="white-space:nowrap; font-weight:700; color:#{'d97706' if (doc.amount - doc.amount_internal) &gt; 0 else '2563eb' if (doc.amount - doc.amount_internal) &lt; 0 else '000'};">
+                                        <span t-esc="doc.amount - doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
                                     </td>
                                     <td class="text-end" style="white-space:nowrap;">
                                         <span t-esc="doc.partner_id.credit" t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
@@ -77,10 +77,10 @@
                             <tr style="background-color:#f2f2f2; font-weight:800;">
                                 <td colspan="4" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Totales</td>
                                 <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
-                                    <span t-esc="total_real" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                    <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                 </td>
                                 <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
-                                    <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                    <span t-esc="total_real" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                 </td>
                                 <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
                                     <span t-esc="total_diff" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
@@ -92,9 +92,9 @@
 
                     <div style="margin-top:18px; border:1px solid #ccc; padding:8px; background-color:#fafafa; font-size:9px; color:#555;">
                         <strong style="color:#333;">CONFIDENCIAL.</strong>
-                        Este reporte refleja el efectivo realmente controlado en caja frente al
-                        monto oficial de cada recibo. El monto oficial es el único que aparece
-                        en el recibo del cliente, el estado de cuenta y la contabilidad.
+                        <b>Cobrado</b> = lo que pagó el cliente (único monto reflejado en el recibo,
+                        el estado de cuenta y la contabilidad). <b>A cuenta</b> = lo depositado/registrado.
+                        <b>En caja</b> = efectivo retenido (caja chica) = Cobrado − A cuenta.
                     </div>
 
                 </div>

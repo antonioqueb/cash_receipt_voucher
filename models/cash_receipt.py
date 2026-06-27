@@ -527,12 +527,17 @@ class CashReceipt(models.Model):
         receipts = self.search(self._period_domain(df, dt), order='date asc')
         company_cur = self.env.company.currency_id
 
+        # Efectivo en caja por recibo = cobrado − depositado a cuenta. Se calcula
+        # en vivo (no se usa el campo almacenado) para no arrastrar valores viejos.
+        def _en_caja(r):
+            return (r.amount or 0.0) - (r.amount_internal or 0.0)
+
         total_official = sum(receipts.mapped('amount'))
         total_real = sum(receipts.mapped('amount_internal'))
         total_diff = total_official - total_real
-        with_diff = receipts.filtered(lambda r: r.has_internal_diff)
-        shortage = sum(r.amount_internal_diff for r in receipts if r.amount_internal_diff > 0)
-        overage = sum(-r.amount_internal_diff for r in receipts if r.amount_internal_diff < 0)
+        with_diff = receipts.filtered(lambda r: abs(_en_caja(r)) > 0.001)
+        shortage = sum(_en_caja(r) for r in receipts if _en_caja(r) > 0)
+        overage = sum(-_en_caja(r) for r in receipts if _en_caja(r) < 0)
         count = len(receipts)
 
         # --- Serie temporal (por día si el rango es corto, si no por mes) ---
@@ -563,7 +568,7 @@ class CashReceipt(models.Model):
                 continue
             b['official'] += r.amount
             b['real'] += r.amount_internal
-            b['diff'] += r.amount_internal_diff
+            b['diff'] += _en_caja(r)
 
         series = list(buckets.values())
 
@@ -575,7 +580,7 @@ class CashReceipt(models.Model):
                 continue
             entry = by_partner.setdefault(p.id, {'name': p.display_name, 'real': 0.0, 'diff': 0.0})
             entry['real'] += r.amount_internal
-            entry['diff'] += r.amount_internal_diff
+            entry['diff'] += _en_caja(r)
         top_partners = sorted(by_partner.values(), key=lambda e: e['real'], reverse=True)[:8]
         # Retención (efectivo en caja) por cliente
         retention_partners = sorted(
@@ -593,7 +598,7 @@ class CashReceipt(models.Model):
                 'orders': ', '.join(r.sale_order_ids.mapped('name')),
                 'official': r.amount,
                 'real': r.amount_internal,
-                'diff': r.amount_internal_diff,
+                'diff': _en_caja(r),
                 'state': r.state,
             })
 
