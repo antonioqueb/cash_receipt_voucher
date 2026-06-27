@@ -1,11 +1,16 @@
 import base64
-from datetime import timedelta
+from collections import OrderedDict
+from datetime import timedelta, datetime, time
 
+from dateutil.relativedelta import relativedelta
 from markupsafe import Markup
 
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError, AccessError
 from odoo.tools import float_compare, float_is_zero
+
+MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 # Nivel 1 (consulta): ve el control interno. Nivel 2 (edición): puede ajustarlo.
 CASH_INTERNAL_VIEW_GROUP = 'cash_receipt_voucher.group_cash_internal_control'
@@ -470,6 +475,169 @@ class CashReceipt(models.Model):
         return self.env.ref(
             'cash_receipt_voucher.action_report_cash_internal_control'
         ).report_action(self)
+
+    # ==================================================================
+    # DASHBOARD DE CONTROL INTERNO DE EFECTIVO
+    # ==================================================================
+    @api.model
+    def _check_internal_access(self):
+        if not self.env.user.has_group(CASH_INTERNAL_VIEW_GROUP):
+            raise AccessError(_(
+                'No tiene permisos para el Control Interno de Efectivo.'))
+
+    @api.model
+    def _resolve_period(self, period, date_from=False, date_to=False):
+        """Devuelve (date_from, date_to) como objetos date según el periodo."""
+        today = fields.Date.context_today(self)
+        if period == 'custom' and date_from and date_to:
+            return fields.Date.to_date(date_from), fields.Date.to_date(date_to)
+        if period == 'today':
+            return today, today
+        if period == 'week':
+            start = today - timedelta(days=today.weekday())
+            return start, start + timedelta(days=6)
+        if period == 'quarter':
+            q_start_month = ((today.month - 1) // 3) * 3 + 1
+            start = today.replace(month=q_start_month, day=1)
+            return start, start + relativedelta(months=3, days=-1)
+        if period == 'year':
+            return today.replace(month=1, day=1), today.replace(month=12, day=31)
+        # 'month' (por defecto)
+        start = today.replace(day=1)
+        return start, start + relativedelta(months=1, days=-1)
+
+    @api.model
+    def _period_domain(self, df, dt):
+        domain = [('state', '!=', 'cancelled')]
+        if df:
+            domain.append(('date', '>=', fields.Datetime.to_string(
+                datetime.combine(df, time.min))))
+        if dt:
+            domain.append(('date', '<=', fields.Datetime.to_string(
+                datetime.combine(dt, time.max))))
+        return domain
+
+    @api.model
+    def get_dashboard_data(self, period='month', date_from=False, date_to=False):
+        """Recopila KPIs y series para el dashboard de efectivo."""
+        self._check_internal_access()
+        df, dt = self._resolve_period(period, date_from, date_to)
+        receipts = self.search(self._period_domain(df, dt), order='date asc')
+        company_cur = self.env.company.currency_id
+
+        total_official = sum(receipts.mapped('amount'))
+        total_real = sum(receipts.mapped('amount_internal'))
+        total_diff = total_official - total_real
+        with_diff = receipts.filtered(lambda r: r.has_internal_diff)
+        shortage = sum(r.amount_internal_diff for r in receipts if r.amount_internal_diff > 0)
+        overage = sum(-r.amount_internal_diff for r in receipts if r.amount_internal_diff < 0)
+        count = len(receipts)
+
+        # --- Serie temporal (por día si el rango es corto, si no por mes) ---
+        span_days = (dt - df).days if (df and dt) else 9999
+        group = 'month' if span_days > 70 else 'day'
+        keys = []  # (key, label)
+        if df and dt:
+            if group == 'day':
+                cur = df
+                while cur <= dt:
+                    keys.append((cur.strftime('%Y-%m-%d'), cur.strftime('%d/%m')))
+                    cur += timedelta(days=1)
+            else:
+                cur = df.replace(day=1)
+                while cur <= dt:
+                    keys.append((cur.strftime('%Y-%m'),
+                                 '%s %s' % (MESES_ES[cur.month - 1], str(cur.year)[2:])))
+                    cur += relativedelta(months=1)
+        buckets = OrderedDict((k, {'official': 0.0, 'real': 0.0, 'diff': 0.0}) for k, _l in keys)
+        labels = [l for _k, l in keys]
+        for r in receipts:
+            if not r.date:
+                continue
+            local = fields.Datetime.context_timestamp(self, r.date)
+            k = local.strftime('%Y-%m') if group == 'month' else local.strftime('%Y-%m-%d')
+            b = buckets.get(k)
+            if b is None:
+                continue
+            b['official'] += r.amount
+            b['real'] += r.amount_internal
+            b['diff'] += r.amount_internal_diff
+
+        series = list(buckets.values())
+
+        # --- Ranking por cliente (top 8 por efectivo real) ---
+        by_partner = {}
+        for r in receipts:
+            p = r.partner_id
+            if not p:
+                continue
+            entry = by_partner.setdefault(p.id, {'name': p.display_name, 'real': 0.0, 'diff': 0.0})
+            entry['real'] += r.amount_internal
+            entry['diff'] += r.amount_internal_diff
+        top_partners = sorted(by_partner.values(), key=lambda e: e['real'], reverse=True)[:8]
+
+        # --- Recibos recientes (máx 12) ---
+        recent = []
+        for r in receipts.sorted(key=lambda x: x.date or datetime.min, reverse=True)[:12]:
+            recent.append({
+                'id': r.id,
+                'name': r.name,
+                'date': fields.Datetime.context_timestamp(self, r.date).strftime('%d/%m/%Y') if r.date else '',
+                'partner': r.partner_id.display_name or '',
+                'orders': ', '.join(r.sale_order_ids.mapped('name')),
+                'official': r.amount,
+                'real': r.amount_internal,
+                'diff': r.amount_internal_diff,
+                'state': r.state,
+            })
+
+        return {
+            'currency': {'symbol': company_cur.symbol or '$', 'position': company_cur.position or 'before'},
+            'period': period,
+            'date_from': df and fields.Date.to_string(df) or '',
+            'date_to': dt and fields.Date.to_string(dt) or '',
+            'kpis': {
+                'total_official': total_official,
+                'total_real': total_real,
+                'total_diff': total_diff,
+                'diff_pct': (total_diff / total_official * 100.0) if total_official else 0.0,
+                'count': count,
+                'partners_count': len(receipts.mapped('partner_id')),
+                'with_diff_count': len(with_diff),
+                'shortage': shortage,
+                'overage': overage,
+                'avg_ticket': (total_real / count) if count else 0.0,
+            },
+            'series': series,
+            'series_labels': labels,
+            'series_group': group,
+            'top_partners': top_partners,
+            'recent': recent,
+        }
+
+    @api.model
+    def action_print_period_report(self, period='month', date_from=False, date_to=False):
+        """Devuelve la acción de reporte PDF de los recibos del periodo."""
+        self._check_internal_access()
+        df, dt = self._resolve_period(period, date_from, date_to)
+        receipts = self.search(self._period_domain(df, dt), order='date asc')
+        if not receipts:
+            raise UserError(_('No hay recibos en el periodo seleccionado para imprimir.'))
+        return self.env.ref(
+            'cash_receipt_voucher.action_report_cash_internal_control'
+        ).report_action(receipts.ids)
+
+    @api.model
+    def action_open_cash_receipt(self, receipt_id):
+        """Abrir un recibo desde el dashboard."""
+        self._check_internal_access()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'cash.receipt',
+            'res_id': int(receipt_id),
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     @api.onchange('sale_order_ids')
     def _onchange_sale_order_ids(self):

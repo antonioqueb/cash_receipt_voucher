@@ -38,12 +38,13 @@
                         <thead>
                             <tr style="background-color:#2f2f2f; color:#fff;">
                                 <th style="color:#fff;">Recibo</th>
-                                <th style="color:#fff;">Fecha</th>
+                                <th style="color:#fff;">Pedido</th>
                                 <th style="color:#fff;">Cliente</th>
+                                <th style="color:#fff;">Fecha</th>
+                                <th class="text-end" style="color:#fff;">Pagado</th>
                                 <th class="text-end" style="color:#fff;">Oficial</th>
-                                <th class="text-end" style="color:#fff;">Efectivo Real</th>
                                 <th class="text-end" style="color:#fff;">Diferencia</th>
-                                <th style="color:#fff;">Motivo</th>
+                                <th class="text-end" style="color:#fff;">Pendiente por cobrar</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -53,30 +54,33 @@
                                 <t t-set="total_diff" t-value="total_diff + doc.amount_internal_diff"/>
                                 <tr style="page-break-inside:avoid;">
                                     <td><strong t-field="doc.name"/></td>
-                                    <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                    <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
                                     <td><span t-field="doc.partner_id.name"/></td>
-                                    <td class="text-end" style="white-space:nowrap;">
-                                        <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
-                                    </td>
+                                    <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
                                     <td class="text-end" style="white-space:nowrap;">
                                         <span t-field="doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                    </td>
+                                    <td class="text-end" style="white-space:nowrap;">
+                                        <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
                                     </td>
                                     <td class="text-end"
                                         t-attf-style="white-space:nowrap; font-weight:700; color:#{'b00020' if doc.amount_internal_diff &gt; 0 else '0a7d28' if doc.amount_internal_diff &lt; 0 else '000'};">
                                         <span t-field="doc.amount_internal_diff" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
                                     </td>
-                                    <td><span t-field="doc.internal_diff_reason"/></td>
+                                    <td class="text-end" style="white-space:nowrap;">
+                                        <span t-esc="doc.partner_id.credit" t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
+                                    </td>
                                 </tr>
                             </t>
                         </tbody>
                         <tfoot>
                             <tr style="background-color:#f2f2f2; font-weight:800;">
-                                <td colspan="3" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Totales</td>
-                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
-                                    <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
-                                </td>
+                                <td colspan="4" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Totales</td>
                                 <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
                                     <span t-esc="total_real" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                    <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                 </td>
                                 <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
                                     <span t-esc="total_diff" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>

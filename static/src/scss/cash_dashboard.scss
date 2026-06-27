@@ -1,0 +1,304 @@
+// ============================================================================
+// Control de Efectivo — Dashboard interno
+// Branding neutral blanco con acentos en azul / azul cielo.
+// ============================================================================
+
+.o_cash_dash {
+    --cash-blue: #2563eb;
+    --cash-blue-700: #1d4ed8;
+    --cash-blue-900: #1e3a8a;
+    --cash-sky: #0ea5e9;
+    --cash-sky-300: #7dd3fc;
+    --cash-bg: #f4f7fc;
+    --cash-card: #ffffff;
+    --cash-line: #e6edf6;
+    --cash-ink: #0f1f3d;
+    --cash-muted: #6b7a90;
+    --cash-red: #e11d48;
+    --cash-green: #059669;
+
+    position: relative;
+    height: 100%;
+    overflow: auto;
+    padding: 1.25rem 1.5rem 2.5rem;
+    background:
+        radial-gradient(1200px 400px at 15% -10%, #e8f1ff 0%, rgba(232, 241, 255, 0) 60%),
+        radial-gradient(900px 380px at 100% 0%, #eaf6ff 0%, rgba(234, 246, 255, 0) 55%),
+        var(--cash-bg);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: var(--cash-ink);
+
+    @keyframes cashUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes cashSpin { to { transform: rotate(360deg); } }
+
+    // ----------------------------------------------------------- TOPBAR
+    .o_cash_topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+    }
+
+    .o_cash_brand {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+
+        .o_cash_brand_icon {
+            width: 48px; height: 48px;
+            display: grid; place-items: center;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 1.4rem;
+            background: linear-gradient(135deg, var(--cash-blue) 0%, var(--cash-sky) 100%);
+            box-shadow: 0 10px 22px rgba(37, 99, 235, 0.35);
+        }
+        h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+        p  { margin: 0; font-size: 0.82rem; color: var(--cash-muted); }
+    }
+
+    .o_cash_actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .o_cash_periods {
+        display: inline-flex;
+        background: #fff;
+        border: 1px solid var(--cash-line);
+        border-radius: 12px;
+        padding: 4px;
+        box-shadow: 0 4px 14px rgba(15, 31, 61, 0.05);
+    }
+
+    .o_cash_chip {
+        border: 0;
+        background: transparent;
+        color: var(--cash-muted);
+        font-weight: 600;
+        font-size: 0.82rem;
+        padding: 6px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+
+        &:hover { color: var(--cash-blue-700); }
+        &.o_active {
+            color: #fff;
+            background: linear-gradient(135deg, var(--cash-blue) 0%, var(--cash-blue-700) 100%);
+            box-shadow: 0 6px 14px rgba(37, 99, 235, 0.35);
+        }
+    }
+
+    .o_cash_btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        border: 1px solid var(--cash-line);
+        background: #fff;
+        color: var(--cash-ink);
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 8px 14px;
+        border-radius: 11px;
+        cursor: pointer;
+        transition: all 0.18s ease;
+
+        &:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(15, 31, 61, 0.1); }
+        &:disabled { opacity: 0.6; cursor: default; transform: none; }
+    }
+    .o_cash_btn_ghost { color: var(--cash-blue-700); }
+    .o_cash_btn_primary {
+        border-color: transparent;
+        color: #fff;
+        background: linear-gradient(135deg, var(--cash-blue) 0%, var(--cash-sky) 100%);
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+    }
+
+    .o_cash_custom {
+        display: flex; align-items: center; gap: 0.6rem;
+        background: #fff; border: 1px solid var(--cash-line); border-radius: 12px;
+        padding: 0.6rem 0.85rem; margin-bottom: 1.25rem; width: fit-content;
+        font-size: 0.85rem; color: var(--cash-muted);
+        input { border: 1px solid var(--cash-line); border-radius: 8px; padding: 5px 8px; color: var(--cash-ink); }
+    }
+
+    // ----------------------------------------------------------- LOADING
+    .o_cash_loading {
+        display: grid; place-items: center; gap: 0.8rem;
+        padding: 5rem 0; color: var(--cash-muted);
+        .o_cash_spinner {
+            width: 42px; height: 42px; border-radius: 50%;
+            border: 4px solid #dbe6f7; border-top-color: var(--cash-blue);
+            animation: cashSpin 0.8s linear infinite;
+        }
+    }
+
+    // ----------------------------------------------------------- KPIs
+    .o_cash_kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.1rem;
+        @media (max-width: 1100px) { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 600px)  { grid-template-columns: 1fr; }
+    }
+
+    .o_cash_card {
+        position: relative;
+        border-radius: 18px;
+        padding: 1.1rem 1.2rem;
+        color: #fff;
+        overflow: hidden;
+        animation: cashUp 0.4s ease both;
+        box-shadow: 0 14px 30px rgba(15, 31, 61, 0.12);
+
+        &::after {
+            content: ""; position: absolute; right: -30px; top: -30px;
+            width: 120px; height: 120px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.12);
+        }
+        .o_cash_card_top {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 1rem; opacity: 0.95;
+            .o_cash_card_label { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; opacity: 0.92; }
+        }
+        .o_cash_card_value { font-size: 1.7rem; font-weight: 800; margin-top: 0.35rem; letter-spacing: -0.02em; }
+        .o_cash_card_foot { font-size: 0.76rem; opacity: 0.9; margin-top: 0.2rem; }
+
+        &:nth-child(2) { animation-delay: 0.05s; }
+        &:nth-child(3) { animation-delay: 0.1s; }
+        &:nth-child(4) { animation-delay: 0.15s; }
+    }
+    .o_cash_grad_blue  { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); }
+    .o_cash_grad_sky   { background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%); }
+    .o_cash_grad_red   { background: linear-gradient(135deg, #9f1239 0%, #e11d48 100%); }
+    .o_cash_grad_green { background: linear-gradient(135deg, #047857 0%, #10b981 100%); }
+    .o_cash_grad_slate { background: linear-gradient(135deg, #334155 0%, #64748b 100%); }
+    .o_cash_card_light {
+        background: #fff; color: var(--cash-ink); border: 1px solid var(--cash-line);
+        &::after { background: rgba(37, 99, 235, 0.06); }
+        .o_cash_card_top i { color: var(--cash-blue); }
+        .o_cash_card_label { color: var(--cash-muted); }
+        .o_cash_card_foot { color: var(--cash-muted); }
+        .o_cash_dark { color: var(--cash-ink); }
+    }
+
+    // ----------------------------------------------------------- GRID
+    .o_cash_grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.1rem;
+        @media (max-width: 1000px) { grid-template-columns: 1fr; }
+    }
+
+    .o_cash_panel {
+        background: var(--cash-card);
+        border: 1px solid var(--cash-line);
+        border-radius: 18px;
+        padding: 1.1rem 1.2rem;
+        margin-bottom: 1.1rem;
+        box-shadow: 0 10px 24px rgba(15, 31, 61, 0.05);
+        animation: cashUp 0.45s ease both;
+    }
+    .o_cash_panel_head {
+        display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem;
+        h3 { margin: 0; font-size: 1rem; font-weight: 700; }
+    }
+    .o_cash_legend, .o_cash_donut_legend {
+        display: flex; gap: 0.9rem; font-size: 0.78rem; color: var(--cash-muted);
+        span { display: inline-flex; align-items: center; gap: 0.35rem; }
+    }
+    .o_dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .o_dot_blue  { background: var(--cash-blue); }
+    .o_dot_sky   { background: var(--cash-sky-300); }
+    .o_dot_red   { background: var(--cash-red); }
+    .o_dot_green { background: var(--cash-green); }
+
+    // Barras
+    .o_cash_bars {
+        display: flex; align-items: flex-end; gap: 0.5rem;
+        height: 230px; padding-top: 0.5rem; overflow-x: auto;
+    }
+    .o_cash_bar_col {
+        flex: 1 0 34px; min-width: 34px;
+        display: flex; flex-direction: column; align-items: center; height: 100%;
+    }
+    .o_cash_bar_pair {
+        flex: 1; width: 100%;
+        display: flex; align-items: flex-end; justify-content: center; gap: 4px;
+    }
+    .o_cash_bar {
+        width: 12px; border-radius: 6px 6px 0 0; min-height: 3px;
+        transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .o_cash_bar_sky  { background: linear-gradient(180deg, var(--cash-sky-300), #bae6fd); }
+    .o_cash_bar_blue { background: linear-gradient(180deg, var(--cash-blue), var(--cash-blue-900)); }
+    .o_cash_bar_label { font-size: 0.68rem; color: var(--cash-muted); margin-top: 0.4rem; white-space: nowrap; }
+
+    // Donut
+    .o_cash_panel_donut { display: flex; flex-direction: column; }
+    .o_cash_donut_wrap { position: relative; width: 180px; height: 180px; margin: 0.4rem auto 0.8rem; }
+    .o_cash_donut { width: 100%; height: 100%; }
+    .o_cash_donut_bg { fill: none; stroke: #e8f0fb; stroke-width: 12; }
+    .o_cash_donut_fg {
+        fill: none; stroke: var(--cash-blue); stroke-width: 12; stroke-linecap: round;
+        transition: stroke-dasharray 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .o_cash_donut_center {
+        position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+        .o_cash_donut_pct { font-size: 1.7rem; font-weight: 800; color: var(--cash-blue-900); display: block; }
+        .o_cash_donut_sub { font-size: 0.74rem; color: var(--cash-muted); }
+    }
+    .o_cash_donut_legend {
+        flex-direction: column; gap: 0.45rem; margin-top: auto;
+        div { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
+        b { color: var(--cash-ink); }
+    }
+
+    // Ranking
+    .o_cash_rank { display: flex; flex-direction: column; gap: 0.7rem; }
+    .o_cash_rank_row {
+        display: grid; grid-template-columns: 200px 1fr 130px; align-items: center; gap: 0.8rem;
+        @media (max-width: 700px) { grid-template-columns: 120px 1fr 90px; }
+    }
+    .o_cash_rank_name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .o_cash_rank_track { height: 12px; background: #eef3fb; border-radius: 8px; overflow: hidden; }
+    .o_cash_rank_fill {
+        height: 100%; border-radius: 8px;
+        background: linear-gradient(90deg, var(--cash-sky) 0%, var(--cash-blue) 100%);
+        transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .o_cash_rank_val { text-align: right; font-weight: 700; font-size: 0.85rem; }
+
+    // Tabla
+    .o_cash_table_wrap { overflow-x: auto; }
+    .o_cash_table {
+        width: 100%; border-collapse: collapse; font-size: 0.84rem;
+        th {
+            text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.03em;
+            color: var(--cash-muted); font-weight: 700; padding: 0.5rem 0.7rem; border-bottom: 2px solid var(--cash-line);
+        }
+        td { padding: 0.6rem 0.7rem; border-bottom: 1px solid #f0f4fa; }
+        .text-end { text-align: right; }
+    }
+    .o_cash_row { cursor: pointer; transition: background 0.15s ease; }
+    .o_cash_row:hover { background: #f3f8ff; }
+    .o_cash_go { color: var(--cash-blue); text-align: right; }
+    .o_cash_neg { color: var(--cash-red); font-weight: 700; }
+    .o_cash_pos { color: var(--cash-green); font-weight: 700; }
+    .o_cash_zero { color: var(--cash-muted); }
+
+    .o_cash_empty { text-align: center; color: var(--cash-muted); padding: 1.5rem; font-size: 0.85rem; }
+
+    .o_cash_confidential {
+        margin-top: 0.6rem; font-size: 0.76rem; color: var(--cash-muted);
+        display: flex; align-items: center; gap: 0.4rem;
+        i { color: var(--cash-blue); }
+    }
+}

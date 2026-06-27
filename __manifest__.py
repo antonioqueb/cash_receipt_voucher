@@ -1,6 +1,6 @@
 {
     'name': 'Comprobante de Pago en Efectivo',
-    'version': '19.0.2.0.1',
+    'version': '19.0.3.0.0',
     'category': 'Sales',
     'summary': 'Genera recibos de pago en efectivo desde órdenes de venta',
     'description': """
@@ -29,6 +29,7 @@
         'data/sequence_data.xml',
         'views/cash_receipt_views.xml',
         'views/cash_internal_control_views.xml',
+        'views/cash_dashboard_views.xml',
         'views/sale_order_views.xml',
         'wizard/cash_receipt_wizard_views.xml',
         'reports/cash_receipt_report.xml',
@@ -38,6 +39,9 @@
     'assets': {
         'web.assets_backend': [
             'cash_receipt_voucher/static/src/css/cash_receipt.scss',
+            'cash_receipt_voucher/static/src/scss/cash_dashboard.scss',
+            'cash_receipt_voucher/static/src/js/cash_dashboard/cash_dashboard.js',
+            'cash_receipt_voucher/static/src/xml/cash_dashboard.xml',
         ],
     },
     'installable': True,

@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="cash_receipt_voucher.CashDashboard">
+        <div class="o_cash_dash">
+
+            <!-- ============ TOPBAR ============ -->
+            <div class="o_cash_topbar">
+                <div class="o_cash_brand">
+                    <div class="o_cash_brand_icon">
+                        <i class="fa fa-money"/>
+                    </div>
+                    <div>
+                        <h1>Control de Efectivo</h1>
+                        <p>Tablero interno · efectivo real vs oficial</p>
+                    </div>
+                </div>
+                <div class="o_cash_actions">
+                    <div class="o_cash_periods">
+                        <t t-foreach="periods" t-as="p" t-key="p.key">
+                            <button class="o_cash_chip"
+                                    t-att-class="{ 'o_active': state.period === p.key }"
+                                    t-on-click="() => this.setPeriod(p.key)">
+                                <t t-esc="p.label"/>
+                            </button>
+                        </t>
+                    </div>
+                    <button class="o_cash_btn o_cash_btn_ghost" t-on-click="() => this.refresh()" title="Actualizar">
+                        <i class="fa fa-refresh"/>
+                    </button>
+                    <button class="o_cash_btn o_cash_btn_primary"
+                            t-on-click="() => this.printPeriod()"
+                            t-att-disabled="state.printing">
+                        <i class="fa fa-file-pdf-o"/> Imprimir PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Rango personalizado -->
+            <div class="o_cash_custom" t-if="state.period === 'custom'">
+                <span>Del</span>
+                <input type="date" t-model="state.dateFrom"/>
+                <span>al</span>
+                <input type="date" t-model="state.dateTo"/>
+                <button class="o_cash_btn o_cash_btn_primary" t-on-click="() => this.applyCustom()">Aplicar</button>
+            </div>
+
+            <!-- ============ LOADING ============ -->
+            <div class="o_cash_loading" t-if="state.loading">
+                <div class="o_cash_spinner"/>
+                <span>Cargando indicadores…</span>
+            </div>
+
+            <!-- ============ CONTENT ============ -->
+            <div class="o_cash_body" t-if="!state.loading and state.data">
+
+                <!-- KPI CARDS -->
+                <div class="o_cash_kpis">
+                    <div class="o_cash_card o_cash_grad_blue">
+                        <div class="o_cash_card_top">
+                            <span class="o_cash_card_label">Oficial cobrado</span>
+                            <i class="fa fa-university"/>
+                        </div>
+                        <div class="o_cash_card_value" t-esc="money(kpis.total_official)"/>
+                        <div class="o_cash_card_foot"><t t-esc="int(kpis.count)"/> recibos</div>
+                    </div>
+
+                    <div class="o_cash_card o_cash_grad_sky">
+                        <div class="o_cash_card_top">
+                            <span class="o_cash_card_label">Efectivo real (a caja)</span>
+                            <i class="fa fa-inbox"/>
+                        </div>
+                        <div class="o_cash_card_value" t-esc="money(kpis.total_real)"/>
+                        <div class="o_cash_card_foot">Ticket prom. <t t-esc="money(kpis.avg_ticket)"/></div>
+                    </div>
+
+                    <div class="o_cash_card" t-att-class="kpis.total_diff > 0 ? 'o_cash_grad_red' : (kpis.total_diff &lt; 0 ? 'o_cash_grad_green' : 'o_cash_grad_slate')">
+                        <div class="o_cash_card_top">
+                            <span class="o_cash_card_label">Diferencia de caja</span>
+                            <i class="fa fa-balance-scale"/>
+                        </div>
+                        <div class="o_cash_card_value" t-esc="money(kpis.total_diff)"/>
+                        <div class="o_cash_card_foot"><t t-esc="pct(kpis.diff_pct)"/> del oficial</div>
+                    </div>
+
+                    <div class="o_cash_card o_cash_card_light">
+                        <div class="o_cash_card_top">
+                            <span class="o_cash_card_label">Recibos con diferencia</span>
+                            <i class="fa fa-exclamation-triangle"/>
+                        </div>
+                        <div class="o_cash_card_value o_cash_dark" t-esc="int(kpis.with_diff_count)"/>
+                        <div class="o_cash_card_foot">de <t t-esc="int(kpis.count)"/> · <t t-esc="int(kpis.partners_count)"/> clientes</div>
+                    </div>
+                </div>
+
+                <!-- MAIN GRID -->
+                <div class="o_cash_grid">
+
+                    <!-- Serie temporal -->
+                    <div class="o_cash_panel o_cash_panel_chart">
+                        <div class="o_cash_panel_head">
+                            <h3>Flujo del periodo</h3>
+                            <div class="o_cash_legend">
+                                <span><i class="o_dot o_dot_sky"/> Oficial</span>
+                                <span><i class="o_dot o_dot_blue"/> Real</span>
+                            </div>
+                        </div>
+                        <div class="o_cash_bars" t-if="series.length">
+                            <t t-foreach="series" t-as="b" t-key="b_index">
+                                <div class="o_cash_bar_col">
+                                    <div class="o_cash_bar_pair">
+                                        <div class="o_cash_bar o_cash_bar_sky"
+                                             t-attf-style="height: {{ barH(b.official) }}%"
+                                             t-att-title="money(b.official)"/>
+                                        <div class="o_cash_bar o_cash_bar_blue"
+                                             t-attf-style="height: {{ barH(b.real) }}%"
+                                             t-att-title="money(b.real)"/>
+                                    </div>
+                                    <div class="o_cash_bar_label" t-esc="seriesLabels[b_index]"/>
+                                </div>
+                            </t>
+                        </div>
+                        <div class="o_cash_empty" t-if="!series.length">Sin movimientos en el periodo.</div>
+                    </div>
+
+                    <!-- Donut composición -->
+                    <div class="o_cash_panel o_cash_panel_donut">
+                        <div class="o_cash_panel_head"><h3>Composición</h3></div>
+                        <div class="o_cash_donut_wrap">
+                            <svg viewBox="0 0 120 120" class="o_cash_donut">
+                                <circle cx="60" cy="60" r="54" class="o_cash_donut_bg"/>
+                                <circle cx="60" cy="60" r="54" class="o_cash_donut_fg"
+                                        t-att-stroke-dasharray="donut.realDash"
+                                        transform="rotate(-90 60 60)"/>
+                            </svg>
+                            <div class="o_cash_donut_center">
+                                <span class="o_cash_donut_pct" t-esc="pct(donut.realPct)"/>
+                                <span class="o_cash_donut_sub">a caja</span>
+                            </div>
+                        </div>
+                        <div class="o_cash_donut_legend">
+                            <div><span class="o_dot o_dot_blue"/> Real <b t-esc="money(kpis.total_real)"/></div>
+                            <div><span class="o_dot o_dot_red"/> Faltante <b t-esc="money(kpis.shortage)"/></div>
+                            <div><span class="o_dot o_dot_green"/> Sobrante <b t-esc="money(kpis.overage)"/></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ranking por cliente -->
+                <div class="o_cash_panel" t-if="topPartners.length">
+                    <div class="o_cash_panel_head"><h3>Top clientes por efectivo real</h3></div>
+                    <div class="o_cash_rank">
+                        <t t-foreach="topPartners" t-as="p" t-key="p_index">
+                            <div class="o_cash_rank_row">
+                                <div class="o_cash_rank_name" t-esc="p.name"/>
+                                <div class="o_cash_rank_track">
+                                    <div class="o_cash_rank_fill" t-attf-style="width: {{ partnerW(p.real) }}%"/>
+                                </div>
+                                <div class="o_cash_rank_val" t-esc="money(p.real)"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <!-- Tabla de recientes -->
+                <div class="o_cash_panel">
+                    <div class="o_cash_panel_head"><h3>Recibos recientes</h3></div>
+                    <div class="o_cash_table_wrap">
+                        <table class="o_cash_table">
+                            <thead>
+                                <tr>
+                                    <th>Recibo</th>
+                                    <th>Pedido</th>
+                                    <th>Cliente</th>
+                                    <th>Fecha</th>
+                                    <th class="text-end">Pagado</th>
+                                    <th class="text-end">Oficial</th>
+                                    <th class="text-end">Diferencia</th>
+                                    <th/>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="recent" t-as="r" t-key="r.id" class="o_cash_row"
+                                    t-on-click="() => this.openReceipt(r.id)">
+                                    <td><b t-esc="r.name"/></td>
+                                    <td t-esc="r.orders"/>
+                                    <td t-esc="r.partner"/>
+                                    <td t-esc="r.date"/>
+                                    <td class="text-end" t-esc="money(r.real)"/>
+                                    <td class="text-end" t-esc="money(r.official)"/>
+                                    <td class="text-end" t-att-class="diffClass(r.diff)">
+                                        <t t-esc="money(r.diff)"/>
+                                    </td>
+                                    <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
+                                </tr>
+                                <tr t-if="!recent.length">
+                                    <td colspan="8" class="o_cash_empty">Sin recibos en el periodo.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="o_cash_confidential">
+                    <i class="fa fa-lock"/> Documento interno y confidencial. El monto oficial es el único reflejado al cliente, en el estado de cuenta y en la contabilidad.
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

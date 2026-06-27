@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Acción cliente: dashboard OWL de control de efectivo -->
+    <record id="action_cash_dashboard" model="ir.actions.client">
+        <field name="name">Control de Efectivo</field>
+        <field name="tag">cash_dashboard</field>
+    </record>
+
+    <!-- Menú raíz "Efectivo" (solo para el grupo de control interno) -->
+    <menuitem id="menu_efectivo_root"
+              name="Efectivo"
+              sequence="3"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+
+    <menuitem id="menu_efectivo_dashboard"
+              name="Dashboard"
+              parent="menu_efectivo_root"
+              action="action_cash_dashboard"
+              sequence="10"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+
+    <menuitem id="menu_efectivo_control"
+              name="Control Interno"
+              parent="menu_efectivo_root"
+              action="action_cash_internal_control"
+              sequence="20"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+
+    <menuitem id="menu_efectivo_recibos"
+              name="Recibos"
+              parent="menu_efectivo_root"
+              action="action_cash_receipt"
+              sequence="30"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+
+</odoo>
