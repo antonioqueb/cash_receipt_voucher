@@ -13,15 +13,15 @@
         <field name="arch" type="xml">
             <list string="Control Interno de Efectivo"
                   create="false"
-                  decoration-danger="amount_internal_diff &gt; 0"
-                  decoration-success="amount_internal_diff &lt; 0"
+                  decoration-warning="amount_internal_diff &gt; 0"
+                  decoration-info="amount_internal_diff &lt; 0"
                   decoration-muted="state == 'cancelled'">
                 <field name="name"/>
                 <field name="date"/>
                 <field name="partner_id"/>
-                <field name="amount" sum="Oficial" string="Oficial"/>
-                <field name="amount_internal" sum="Efectivo Real" string="Efectivo Real"/>
-                <field name="amount_internal_diff" sum="Diferencia" string="Dif. Caja"/>
+                <field name="amount" sum="Cobrado (oficial)" string="Oficial"/>
+                <field name="amount_internal" sum="A Cuenta" string="A Cuenta"/>
+                <field name="amount_internal_diff" sum="En Caja" string="En Caja"/>
                 <field name="internal_diff_reason" string="Motivo" optional="show"/>
                 <field name="internal_adjusted_by" string="Ajustado por" optional="show"/>
                 <field name="internal_adjusted_date" string="Fecha ajuste" optional="hide"/>
@@ -58,9 +58,9 @@
                 <field name="internal_adjusted_by"/>
                 <filter string="Solo con diferencia" name="only_diff"
                         domain="[('has_internal_diff', '=', True)]"/>
-                <filter string="Faltante de caja" name="shortage"
+                <filter string="Con efectivo en caja" name="shortage"
                         domain="[('amount_internal_diff', '&gt;', 0)]"/>
-                <filter string="Sobrante de caja" name="overage"
+                <filter string="Depositado de más" name="overage"
                         domain="[('amount_internal_diff', '&lt;', 0)]"/>
                 <separator/>
                 <filter string="No cancelados" name="not_cancelled"

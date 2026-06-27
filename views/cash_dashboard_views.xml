@@ -11,6 +11,7 @@
     <menuitem id="menu_efectivo_root"
               name="Efectivo"
               sequence="3"
+              web_icon="cash_receipt_voucher,static/description/icon.svg"
               groups="cash_receipt_voucher.group_cash_internal_control"/>
 
     <menuitem id="menu_efectivo_dashboard"

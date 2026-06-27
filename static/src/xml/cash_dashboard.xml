@@ -58,38 +58,40 @@
                 <div class="o_cash_kpis">
                     <div class="o_cash_card o_cash_grad_blue">
                         <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Oficial cobrado</span>
+                            <span class="o_cash_card_label">Cobrado (oficial)</span>
                             <i class="fa fa-university"/>
                         </div>
                         <div class="o_cash_card_value" t-esc="money(kpis.total_official)"/>
-                        <div class="o_cash_card_foot"><t t-esc="int(kpis.count)"/> recibos</div>
+                        <div class="o_cash_card_foot">
+                            <t t-esc="deltaText(deltas.official)"/> vs periodo anterior
+                        </div>
                     </div>
 
                     <div class="o_cash_card o_cash_grad_sky">
                         <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Efectivo real (a caja)</span>
-                            <i class="fa fa-inbox"/>
+                            <span class="o_cash_card_label">A cuenta (depositado)</span>
+                            <i class="fa fa-bank"/>
                         </div>
                         <div class="o_cash_card_value" t-esc="money(kpis.total_real)"/>
-                        <div class="o_cash_card_foot">Ticket prom. <t t-esc="money(kpis.avg_ticket)"/></div>
+                        <div class="o_cash_card_foot"><t t-esc="pct(kpis.deposit_rate)"/> del cobrado</div>
                     </div>
 
-                    <div class="o_cash_card" t-att-class="kpis.total_diff > 0 ? 'o_cash_grad_red' : (kpis.total_diff &lt; 0 ? 'o_cash_grad_green' : 'o_cash_grad_slate')">
+                    <div class="o_cash_card" t-att-class="kpis.total_diff &lt; 0 ? 'o_cash_grad_slate' : 'o_cash_grad_orange'">
                         <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Diferencia de caja</span>
-                            <i class="fa fa-balance-scale"/>
+                            <span class="o_cash_card_label">Efectivo en caja</span>
+                            <i class="fa fa-money"/>
                         </div>
                         <div class="o_cash_card_value" t-esc="money(kpis.total_diff)"/>
-                        <div class="o_cash_card_foot"><t t-esc="pct(kpis.diff_pct)"/> del oficial</div>
+                        <div class="o_cash_card_foot">caja chica · <t t-esc="pct(kpis.retention_rate)"/> retenido</div>
                     </div>
 
                     <div class="o_cash_card o_cash_card_light">
                         <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Recibos con diferencia</span>
-                            <i class="fa fa-exclamation-triangle"/>
+                            <span class="o_cash_card_label">Recibos</span>
+                            <i class="fa fa-file-text-o"/>
                         </div>
-                        <div class="o_cash_card_value o_cash_dark" t-esc="int(kpis.with_diff_count)"/>
-                        <div class="o_cash_card_foot">de <t t-esc="int(kpis.count)"/> · <t t-esc="int(kpis.partners_count)"/> clientes</div>
+                        <div class="o_cash_card_value o_cash_dark" t-esc="int(kpis.count)"/>
+                        <div class="o_cash_card_foot"><t t-esc="int(kpis.with_diff_count)"/> con retención · <t t-esc="int(kpis.partners_count)"/> clientes</div>
                     </div>
                 </div>
 
@@ -135,13 +137,12 @@
                             </svg>
                             <div class="o_cash_donut_center">
                                 <span class="o_cash_donut_pct" t-esc="pct(donut.realPct)"/>
-                                <span class="o_cash_donut_sub">a caja</span>
+                                <span class="o_cash_donut_sub">a cuenta</span>
                             </div>
                         </div>
                         <div class="o_cash_donut_legend">
-                            <div><span class="o_dot o_dot_blue"/> Real <b t-esc="money(kpis.total_real)"/></div>
-                            <div><span class="o_dot o_dot_red"/> Faltante <b t-esc="money(kpis.shortage)"/></div>
-                            <div><span class="o_dot o_dot_green"/> Sobrante <b t-esc="money(kpis.overage)"/></div>
+                            <div><span class="o_dot o_dot_blue"/> A cuenta <b t-esc="money(kpis.total_real)"/></div>
+                            <div><span class="o_dot o_dot_orange"/> En caja <b t-esc="money(kpis.total_diff)"/></div>
                         </div>
                     </div>
                 </div>
@@ -157,6 +158,80 @@
                                     <div class="o_cash_rank_fill" t-attf-style="width: {{ partnerW(p.real) }}%"/>
                                 </div>
                                 <div class="o_cash_rank_val" t-esc="money(p.real)"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <!-- Indicadores de dirección -->
+                <div class="o_cash_grid2">
+                    <div class="o_cash_panel o_cash_panel_gauge">
+                        <div class="o_cash_panel_head"><h3>Nivel de retención</h3></div>
+                        <div class="o_cash_gauge_wrap">
+                            <svg viewBox="0 0 140 84" class="o_cash_gauge">
+                                <path d="M 14 76 A 56 56 0 0 1 126 76" class="o_cash_gauge_bg"/>
+                                <path d="M 14 76 A 56 56 0 0 1 126 76" class="o_cash_gauge_fg"
+                                      t-att-stroke-dasharray="gauge(kpis.retention_rate).dash"/>
+                            </svg>
+                            <div class="o_cash_gauge_val">
+                                <span class="o_cash_gauge_pct" t-esc="pct(kpis.retention_rate)"/>
+                                <span class="o_cash_gauge_sub">en caja chica</span>
+                            </div>
+                        </div>
+                        <div class="o_cash_gauge_foot">
+                            Depositado <b t-esc="pct(kpis.deposit_rate)"/> · En caja
+                            <b class="o_cash_orange_txt" t-esc="pct(kpis.retention_rate)"/>
+                        </div>
+                    </div>
+
+                    <div class="o_cash_panel">
+                        <div class="o_cash_panel_head"><h3>Indicadores de dirección</h3></div>
+                        <div class="o_cash_mini">
+                            <div class="o_cash_mini_item">
+                                <span class="o_cash_mini_label">Ticket promedio</span>
+                                <span class="o_cash_mini_val" t-esc="money(kpis.avg_ticket)"/>
+                            </div>
+                            <div class="o_cash_mini_item">
+                                <span class="o_cash_mini_label">Retención prom./recibo</span>
+                                <span class="o_cash_mini_val o_cash_orange_txt" t-esc="money(kpis.avg_retention)"/>
+                            </div>
+                            <div class="o_cash_mini_item">
+                                <span class="o_cash_mini_label">Recibo más alto</span>
+                                <span class="o_cash_mini_val" t-esc="money(max.value)"/>
+                                <span class="o_cash_mini_hint" t-esc="max.name"/>
+                            </div>
+                            <div class="o_cash_mini_item">
+                                <span class="o_cash_mini_label">Pendiente por cobrar</span>
+                                <span class="o_cash_mini_val" t-esc="money(kpis.pending_total)"/>
+                                <span class="o_cash_mini_hint"><t t-esc="int(kpis.partners_count)"/> clientes</span>
+                            </div>
+                            <div class="o_cash_mini_item">
+                                <span class="o_cash_mini_label">A cuenta vs anterior</span>
+                                <span class="o_cash_mini_val" t-att-class="deltaClass(deltas.real)" t-esc="deltaText(deltas.real)"/>
+                            </div>
+                            <div class="o_cash_mini_item">
+                                <span class="o_cash_mini_label">Estados (pag/ent/bor)</span>
+                                <span class="o_cash_mini_states">
+                                    <span class="o_cash_pill o_pill_paid" t-esc="int(states.paid)"/>
+                                    <span class="o_cash_pill o_pill_deliv" t-esc="int(states.delivered)"/>
+                                    <span class="o_cash_pill o_pill_draft" t-esc="int(states.draft)"/>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Retención por cliente -->
+                <div class="o_cash_panel" t-if="retentionPartners.length">
+                    <div class="o_cash_panel_head"><h3>Efectivo en caja por cliente</h3></div>
+                    <div class="o_cash_rank">
+                        <t t-foreach="retentionPartners" t-as="p" t-key="p_index">
+                            <div class="o_cash_rank_row">
+                                <div class="o_cash_rank_name" t-esc="p.name"/>
+                                <div class="o_cash_rank_track">
+                                    <div class="o_cash_rank_fill o_cash_rank_fill_orange" t-attf-style="width: {{ retW(p.diff) }}%"/>
+                                </div>
+                                <div class="o_cash_rank_val o_cash_orange_txt" t-esc="money(p.diff)"/>
                             </div>
                         </t>
                     </div>

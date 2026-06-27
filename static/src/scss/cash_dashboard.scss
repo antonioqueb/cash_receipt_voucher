@@ -18,15 +18,21 @@
     --cash-green: #059669;
 
     position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
     height: 100%;
-    overflow: auto;
-    padding: 1.25rem 1.5rem 2.5rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: clamp(0.7rem, 1.4vw, 1.4rem) clamp(0.8rem, 1.6vw, 1.5rem) 2rem;
     background:
         radial-gradient(1200px 400px at 15% -10%, #e8f1ff 0%, rgba(232, 241, 255, 0) 60%),
         radial-gradient(900px 380px at 100% 0%, #eaf6ff 0%, rgba(234, 246, 255, 0) 55%),
         var(--cash-bg);
     font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--cash-ink);
+
+    *, *::before, *::after { box-sizing: border-box; }
 
     @keyframes cashUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes cashSpin { to { transform: rotate(360deg); } }
@@ -300,5 +306,76 @@
         margin-top: 0.6rem; font-size: 0.76rem; color: var(--cash-muted);
         display: flex; align-items: center; gap: 0.4rem;
         i { color: var(--cash-blue); }
+    }
+
+    // ----------------------------------------------------------- NARANJA (en caja)
+    --cash-orange: #f59e0b;
+    .o_cash_grad_orange { background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%); }
+    .o_dot_orange { background: var(--cash-orange); }
+    .o_cash_orange_txt { color: #d97706; }
+    .o_cash_neg { color: #d97706 !important; }   // retenido en caja → naranja, no rojo
+    .o_cash_pos { color: var(--cash-blue) !important; } // depositado de más → azul
+
+    // ----------------------------------------------------------- AJUSTE DE PANTALLA
+    .o_cash_card_value { font-size: clamp(1.15rem, 1.7vw, 1.6rem); }
+    .o_cash_brand h1 { font-size: clamp(1.1rem, 1.7vw, 1.4rem); }
+    .o_cash_bars { height: clamp(150px, 22vh, 220px); }
+
+    // ----------------------------------------------------------- DELTAS
+    .o_cash_up   { color: var(--cash-green); font-weight: 700; }
+    .o_cash_down { color: #d97706; font-weight: 700; }
+    .o_cash_flat { color: var(--cash-muted); font-weight: 700; }
+
+    // ----------------------------------------------------------- GRID 2 (gauge + mini)
+    .o_cash_grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1.6fr;
+        gap: 1rem;
+        @media (max-width: 1000px) { grid-template-columns: 1fr; }
+    }
+
+    // Termómetro / gauge
+    .o_cash_panel_gauge { display: flex; flex-direction: column; }
+    .o_cash_gauge_wrap { position: relative; width: 100%; max-width: 280px; margin: 0.3rem auto 0; }
+    .o_cash_gauge { width: 100%; height: auto; overflow: visible; }
+    .o_cash_gauge_bg { fill: none; stroke: #e8f0fb; stroke-width: 14; stroke-linecap: round; }
+    .o_cash_gauge_fg {
+        fill: none; stroke: var(--cash-orange); stroke-width: 14; stroke-linecap: round;
+        transition: stroke-dasharray 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .o_cash_gauge_val {
+        position: absolute; left: 0; right: 0; bottom: 0; text-align: center;
+        .o_cash_gauge_pct { display: block; font-size: 1.7rem; font-weight: 800; color: #b45309; }
+        .o_cash_gauge_sub { font-size: 0.74rem; color: var(--cash-muted); }
+    }
+    .o_cash_gauge_foot {
+        margin-top: 0.8rem; text-align: center; font-size: 0.8rem; color: var(--cash-muted);
+        b { color: var(--cash-ink); }
+    }
+
+    // Mini indicadores
+    .o_cash_mini {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem;
+        @media (max-width: 760px) { grid-template-columns: repeat(2, 1fr); }
+        @media (max-width: 480px) { grid-template-columns: 1fr; }
+    }
+    .o_cash_mini_item {
+        background: #f7faff; border: 1px solid var(--cash-line); border-radius: 12px;
+        padding: 0.65rem 0.8rem; display: flex; flex-direction: column; gap: 0.15rem;
+        .o_cash_mini_label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cash-muted); font-weight: 600; }
+        .o_cash_mini_val { font-size: 1.1rem; font-weight: 800; }
+        .o_cash_mini_hint { font-size: 0.7rem; color: var(--cash-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    }
+    .o_cash_mini_states { display: flex; gap: 0.35rem; }
+    .o_cash_pill {
+        min-width: 26px; text-align: center; padding: 2px 8px; border-radius: 8px;
+        font-size: 0.85rem; font-weight: 800; color: #fff;
+    }
+    .o_pill_paid  { background: var(--cash-green); }
+    .o_pill_deliv { background: var(--cash-orange); }
+    .o_pill_draft { background: #94a3b8; }
+
+    .o_cash_rank_fill_orange {
+        background: linear-gradient(90deg, #fbbf24 0%, #d97706 100%) !important;
     }
 }

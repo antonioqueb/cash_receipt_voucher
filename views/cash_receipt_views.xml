@@ -85,12 +85,12 @@
                     <group string="🔒 Control Interno de Efectivo"
                            groups="cash_receipt_voucher.group_cash_internal_control">
                         <field name="can_adjust_internal" invisible="1"/>
-                        <div class="alert alert-info" colspan="2" role="status"
+                        <div class="alert alert-warning" colspan="2" role="status"
                              invisible="not has_internal_diff">
-                            <strong>Hay una diferencia de caja registrada.</strong>
+                            <strong>Hay efectivo retenido en caja (caja chica).</strong>
                             El monto oficial (recibo, estado de cuenta y contabilidad)
-                            sigue siendo el "Monto Recibido". Esta diferencia es
-                            interna y no se muestra al cliente.
+                            sigue siendo el "Monto Recibido". Lo retenido es interno
+                            y no se muestra al cliente.
                         </div>
                         <group>
                             <field name="amount_internal" readonly="not can_adjust_internal"/>
@@ -149,13 +149,13 @@
                 <field name="partner_id"/>
                 <field name="sale_order_ids" widget="many2many_tags"/>
                 <field name="amount" sum="Total Recibido"/>
-                <field name="amount_internal" sum="Total Real (Interno)"
-                       optional="show" string="Efectivo Real"
+                <field name="amount_internal" sum="Total a Cuenta"
+                       optional="show" string="A Cuenta"
                        groups="cash_receipt_voucher.group_cash_internal_control"/>
-                <field name="amount_internal_diff" sum="Diferencia"
-                       optional="show" string="Dif. Caja"
-                       decoration-danger="amount_internal_diff &gt; 0"
-                       decoration-success="amount_internal_diff &lt; 0"
+                <field name="amount_internal_diff" sum="Total en Caja"
+                       optional="show" string="En Caja"
+                       decoration-warning="amount_internal_diff &gt; 0"
+                       decoration-info="amount_internal_diff &lt; 0"
                        groups="cash_receipt_voucher.group_cash_internal_control"/>
                 <field name="currency_id" column_invisible="1"/>
                 <field name="state"
@@ -188,7 +188,7 @@
                 <separator/>
                 <filter string="Sin Pago Formal" name="no_payment"
                         domain="[('payment_id', '=', False), ('state', '=', 'delivered')]"/>
-                <filter string="Con Diferencia de Caja" name="internal_diff"
+                <filter string="Con Efectivo en Caja" name="internal_diff"
                         domain="[('has_internal_diff', '=', True)]"
                         groups="cash_receipt_voucher.group_cash_internal_control"/>
                     <filter string="Cliente" name="group_partner"

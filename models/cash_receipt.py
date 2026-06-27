@@ -98,22 +98,24 @@ class CashReceipt(models.Model):
     # solo el grupo 'Control Interno de Efectivo' puede ajustarlo. No impacta
     # ningún documento oficial: vive solo en el reporte de control interno.
     amount_internal = fields.Monetary(
-        string='Efectivo Real (Control Interno)',
+        string='Depositado a Cuenta (Control Interno)',
         currency_field='currency_id',
         copy=False,
         tracking=True,
-        help='Efectivo realmente ingresado/controlado en caja. Por defecto es '
-             'igual al Monto Recibido. Solo el grupo "Control Interno de '
-             'Efectivo" puede modificarlo. No afecta el recibo, el estado de '
-             'cuenta ni la contabilidad: es un control interno paralelo.',
+        help='Monto que se registra/ingresa a la cuenta. Por defecto es igual '
+             'al Monto Recibido (todo se deposita). Solo el grupo "Control '
+             'Interno de Efectivo" puede modificarlo. La diferencia con el '
+             'oficial es el efectivo que se queda en caja (caja chica). No '
+             'afecta el recibo, el estado de cuenta ni la contabilidad.',
     )
     amount_internal_diff = fields.Monetary(
-        string='Diferencia de Caja',
+        string='Efectivo en Caja (Retenido)',
         compute='_compute_amount_internal_diff',
         store=True,
         currency_field='currency_id',
-        help='Monto Oficial menos Efectivo Real. '
-             'Positivo = faltante de caja; negativo = sobrante.',
+        help='Monto Recibido menos lo Depositado a Cuenta. Es el efectivo que '
+             'se queda físicamente en caja (caja chica). Positivo = retenido; '
+             'negativo = se depositó de más.',
     )
     has_internal_diff = fields.Boolean(
         string='Tiene Diferencia',
@@ -575,6 +577,10 @@ class CashReceipt(models.Model):
             entry['real'] += r.amount_internal
             entry['diff'] += r.amount_internal_diff
         top_partners = sorted(by_partner.values(), key=lambda e: e['real'], reverse=True)[:8]
+        # Retención (efectivo en caja) por cliente
+        retention_partners = sorted(
+            [e for e in by_partner.values() if e['diff'] > 0],
+            key=lambda e: e['diff'], reverse=True)[:6]
 
         # --- Recibos recientes (máx 12) ---
         recent = []
@@ -591,6 +597,38 @@ class CashReceipt(models.Model):
                 'state': r.state,
             })
 
+        # --- Indicadores de dirección ---
+        deposit_rate = (total_real / total_official * 100.0) if total_official else 0.0
+        retention_rate = (total_diff / total_official * 100.0) if total_official else 0.0
+        avg_retention = (total_diff / count) if count else 0.0
+        avg_ticket = (total_official / count) if count else 0.0
+        pending_total = sum(receipts.mapped('partner_id').mapped('credit'))
+        max_r = max(receipts, key=lambda r: r.amount, default=None)
+        max_receipt = {
+            'name': max_r.name, 'value': max_r.amount,
+            'partner': max_r.partner_id.display_name,
+        } if max_r else {'name': '', 'value': 0.0, 'partner': ''}
+        states = {'draft': 0, 'delivered': 0, 'paid': 0}
+        for r in receipts:
+            if r.state in states:
+                states[r.state] += 1
+
+        # Comparativo contra el periodo inmediato anterior (mismo tamaño)
+        prev = {'official': 0.0, 'real': 0.0, 'diff': 0.0}
+        if df and dt:
+            length = (dt - df).days + 1
+            prev_dt = df - timedelta(days=1)
+            prev_df = prev_dt - timedelta(days=length - 1)
+            prev_receipts = self.search(self._period_domain(prev_df, prev_dt))
+            prev['official'] = sum(prev_receipts.mapped('amount'))
+            prev['real'] = sum(prev_receipts.mapped('amount_internal'))
+            prev['diff'] = prev['official'] - prev['real']
+
+        def _delta(cur, pre):
+            if pre:
+                return (cur - pre) / pre * 100.0
+            return 100.0 if cur else 0.0
+
         return {
             'currency': {'symbol': company_cur.symbol or '$', 'position': company_cur.position or 'before'},
             'period': period,
@@ -600,18 +638,31 @@ class CashReceipt(models.Model):
                 'total_official': total_official,
                 'total_real': total_real,
                 'total_diff': total_diff,
-                'diff_pct': (total_diff / total_official * 100.0) if total_official else 0.0,
+                'diff_pct': retention_rate,
+                'deposit_rate': deposit_rate,
+                'retention_rate': retention_rate,
+                'avg_retention': avg_retention,
+                'avg_ticket': avg_ticket,
                 'count': count,
                 'partners_count': len(receipts.mapped('partner_id')),
                 'with_diff_count': len(with_diff),
                 'shortage': shortage,
                 'overage': overage,
-                'avg_ticket': (total_real / count) if count else 0.0,
+                'pending_total': pending_total,
+            },
+            'max_receipt': max_receipt,
+            'states': states,
+            'prev': prev,
+            'deltas': {
+                'official': _delta(total_official, prev['official']),
+                'real': _delta(total_real, prev['real']),
+                'diff': _delta(total_diff, prev['diff']),
             },
             'series': series,
             'series_labels': labels,
             'series_group': group,
             'top_partners': top_partners,
+            'retention_partners': retention_partners,
             'recent': recent,
         }
 

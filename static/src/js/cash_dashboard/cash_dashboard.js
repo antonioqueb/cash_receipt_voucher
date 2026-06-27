@@ -194,9 +194,57 @@ export class CashDashboard extends Component {
 
     diffLabel(val) {
         const n = parseFloat(val || 0);
-        if (n > 0) return "Faltante";
-        if (n < 0) return "Sobrante";
-        return "Cuadrado";
+        if (n > 0) return "Retenido";
+        if (n < 0) return "Depositado de más";
+        return "Sin retención";
+    }
+
+    // ---------------------------------------------------------------- extras
+    get max() {
+        return (this.state.data && this.state.data.max_receipt) || {};
+    }
+    get prev() {
+        return (this.state.data && this.state.data.prev) || {};
+    }
+    get deltas() {
+        return (this.state.data && this.state.data.deltas) || {};
+    }
+    get states() {
+        return (this.state.data && this.state.data.states) || {};
+    }
+    get retentionPartners() {
+        return (this.state.data && this.state.data.retention_partners) || [];
+    }
+
+    get retMax() {
+        let m = 0;
+        for (const p of this.retentionPartners) {
+            m = Math.max(m, p.diff || 0);
+        }
+        return m || 1;
+    }
+    retW(v) {
+        return Math.max(2, Math.min(100, (parseFloat(v || 0) / this.retMax) * 100));
+    }
+
+    // Gauge / termómetro semicircular (0..100%) — r debe coincidir con el arco SVG
+    gauge(value) {
+        const r = 56;
+        const semi = Math.PI * r;
+        const pct = Math.max(0, Math.min(100, parseFloat(value || 0)));
+        return { semi, dash: `${(pct / 100) * semi} ${semi}`, pct };
+    }
+
+    deltaClass(v) {
+        const n = parseFloat(v || 0);
+        if (n > 0) return "o_cash_up";
+        if (n < 0) return "o_cash_down";
+        return "o_cash_flat";
+    }
+    deltaText(v) {
+        const n = parseFloat(v || 0);
+        const a = Math.abs(n).toFixed(1);
+        return (n > 0 ? "▲ " : n < 0 ? "▼ " : "= ") + a + "%";
     }
 
     periodLabel() {
