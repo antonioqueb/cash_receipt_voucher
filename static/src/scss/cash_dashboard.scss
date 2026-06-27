@@ -262,9 +262,12 @@
         .o_cash_donut_sub { font-size: 0.74rem; color: var(--cash-muted); }
     }
     .o_cash_donut_legend {
-        flex-direction: column; gap: 0.45rem; margin-top: auto;
-        div { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
-        b { color: var(--cash-ink); }
+        flex-direction: column; gap: 0.5rem; margin-top: auto; width: 100%;
+        div {
+            display: flex; align-items: center; gap: 0.5rem;
+            justify-content: flex-start; font-size: 0.82rem; width: 100%;
+        }
+        b { margin-left: auto; color: var(--cash-ink); font-variant-numeric: tabular-nums; }
     }
 
     // Ranking

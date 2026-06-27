@@ -101,8 +101,13 @@ export class CashDashboard extends Component {
     }
 
     async openReceipt(id) {
-        const act = await this.orm.call("cash.receipt", "action_open_cash_receipt", [id]);
-        await this.action.doAction(act);
+        await this.action.doAction({
+            type: "ir.actions.act_window",
+            res_model: "cash.receipt",
+            res_id: id,
+            views: [[false, "form"]],
+            target: "current",
+        });
     }
 
     // ---------------------------------------------------------------- format
