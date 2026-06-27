@@ -36,6 +36,24 @@
                 </div>
             </div>
 
+            <!-- Selector de divisa -->
+            <div class="o_cash_currencybar">
+                <span class="o_cash_curtitle"><i class="fa fa-exchange"/> Divisa</span>
+                <div class="o_cash_periods">
+                    <t t-foreach="currencies" t-as="c" t-key="c.key">
+                        <button class="o_cash_chip"
+                                t-att-class="{ 'o_active': state.currencyMode === c.key }"
+                                t-on-click="() => this.setCurrency(c.key)">
+                            <t t-esc="c.label"/>
+                        </button>
+                    </t>
+                </div>
+                <span class="o_cash_curbadge">Mostrando en <b t-esc="curLabel"/></span>
+                <span class="o_cash_curhint" t-if="mix.usd and mix.mxn">
+                    <i class="fa fa-info-circle"/> Este periodo tiene recibos en USD y MXN (<t t-esc="mix.usd"/> USD · <t t-esc="mix.mxn"/> MXN)
+                </span>
+            </div>
+
             <!-- Rango personalizado -->
             <div class="o_cash_custom" t-if="state.period === 'custom'">
                 <span>Del</span>
@@ -248,6 +266,7 @@
                                     <th>Pedido</th>
                                     <th>Cliente</th>
                                     <th>Fecha</th>
+                                    <th>Div</th>
                                     <th class="text-end">Cobrado</th>
                                     <th class="text-end">A cuenta</th>
                                     <th class="text-end">En caja</th>
@@ -261,6 +280,7 @@
                                     <td t-esc="r.orders"/>
                                     <td t-esc="r.partner"/>
                                     <td t-esc="r.date"/>
+                                    <td><span class="o_cash_curtag" t-esc="r.cur"/></td>
                                     <td class="text-end" t-esc="money(r.official)"/>
                                     <td class="text-end" t-esc="money(r.real)"/>
                                     <td class="text-end" t-att-class="diffClass(r.diff)">
@@ -269,7 +289,7 @@
                                     <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
                                 </tr>
                                 <tr t-if="!recent.length">
-                                    <td colspan="8" class="o_cash_empty">Sin recibos en el periodo.</td>
+                                    <td colspan="9" class="o_cash_empty">Sin recibos en el periodo.</td>
                                 </tr>
                             </tbody>
                         </table>

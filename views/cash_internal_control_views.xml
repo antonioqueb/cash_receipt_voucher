@@ -22,10 +22,13 @@
                 <field name="amount" sum="Cobrado (oficial)" string="Oficial"/>
                 <field name="amount_internal" sum="A Cuenta" string="A Cuenta"/>
                 <field name="amount_internal_diff" sum="En Caja" string="En Caja"/>
-                <field name="internal_diff_reason" string="Motivo" optional="show"/>
-                <field name="internal_adjusted_by" string="Ajustado por" optional="show"/>
+                <field name="mxn_currency_id" column_invisible="1"/>
+                <field name="amount_mxn" sum="Cobrado (MXN)" string="Cobrado MXN" optional="show"/>
+                <field name="internal_diff_reason" string="Motivo" optional="hide"/>
+                <field name="internal_adjusted_by" string="Ajustado por" optional="hide"/>
                 <field name="internal_adjusted_date" string="Fecha ajuste" optional="hide"/>
-                <field name="currency_id" column_invisible="1"/>
+                <field name="is_usd" column_invisible="1"/>
+                <field name="currency_id" string="Div" optional="show"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
                        decoration-warning="state == 'delivered'"
@@ -63,6 +66,9 @@
                 <filter string="Depositado de más" name="overage"
                         domain="[('amount_internal_diff', '&lt;', 0)]"/>
                 <separator/>
+                <filter string="Solo USD" name="only_usd" domain="[('is_usd', '=', True)]"/>
+                <filter string="Solo MXN" name="only_mxn" domain="[('is_usd', '=', False)]"/>
+                <separator/>
                 <filter string="No cancelados" name="not_cancelled"
                         domain="[('state', '!=', 'cancelled')]"/>
                 <separator/>
@@ -70,6 +76,8 @@
                         context="{'group_by': 'partner_id'}"/>
                 <filter string="Ajustado por" name="group_adjuster"
                         context="{'group_by': 'internal_adjusted_by'}"/>
+                <filter string="Divisa" name="group_currency"
+                        context="{'group_by': 'currency_id'}"/>
                 <filter string="Mes" name="group_date"
                         context="{'group_by': 'date:month'}"/>
             </search>

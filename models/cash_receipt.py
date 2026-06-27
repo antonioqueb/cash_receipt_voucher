@@ -145,6 +145,30 @@ class CashReceipt(models.Model):
              'Efectivo Real". Controla el solo-lectura de los campos internos.',
     )
 
+    # ------------------------------------------------------------------
+    # MULTIDIVISA — equivalente en pesos (MXN) al tipo de cambio (DOF) de la fecha
+    # ------------------------------------------------------------------
+    mxn_currency_id = fields.Many2one(
+        'res.currency', string='MXN', compute='_compute_ref_currencies',
+    )
+    is_usd = fields.Boolean(
+        string='En Dólares', compute='_compute_is_usd', store=True,
+    )
+    amount_mxn = fields.Monetary(
+        string='Cobrado (MXN)',
+        compute='_compute_amounts_mxn', store=True,
+        currency_field='mxn_currency_id',
+        help='Equivalente en pesos del Monto Recibido, al tipo de cambio (DOF) '
+             'de la fecha del recibo.',
+    )
+    amount_internal_mxn = fields.Monetary(
+        string='A Cuenta (MXN)',
+        compute='_compute_amounts_mxn', store=True,
+        currency_field='mxn_currency_id',
+        help='Equivalente en pesos de lo depositado a cuenta, al tipo de cambio '
+             '(DOF) de la fecha del recibo.',
+    )
+
     # Vinculación con pago formal
     payment_id = fields.Many2one(
         'account.payment',
@@ -212,6 +236,33 @@ class CashReceipt(models.Model):
             diff = (rec.amount or 0.0) - (rec.amount_internal or 0.0)
             rec.amount_internal_diff = diff
             rec.has_internal_diff = not float_is_zero(diff, precision_rounding=rounding)
+
+    def _compute_ref_currencies(self):
+        mxn = self.env.ref('base.MXN', raise_if_not_found=False)
+        for rec in self:
+            rec.mxn_currency_id = mxn
+
+    @api.depends('currency_id')
+    def _compute_is_usd(self):
+        usd = self.env.ref('base.USD', raise_if_not_found=False)
+        for rec in self:
+            rec.is_usd = bool(usd and rec.currency_id and rec.currency_id == usd)
+
+    @api.depends('amount', 'amount_internal', 'currency_id', 'date')
+    def _compute_amounts_mxn(self):
+        """Convierte a MXN con el tipo de cambio de la fecha del recibo (las
+        tasas de res.currency.rate deben ser las del DOF/Banxico)."""
+        mxn = self.env.ref('base.MXN', raise_if_not_found=False)
+        for rec in self:
+            company = rec.company_id or self.env.company
+            target = mxn or company.currency_id
+            d = rec.date.date() if rec.date else fields.Date.context_today(rec)
+            if rec.currency_id and target and rec.currency_id != target:
+                rec.amount_mxn = rec.currency_id._convert(rec.amount or 0.0, target, company, d)
+                rec.amount_internal_mxn = rec.currency_id._convert(rec.amount_internal or 0.0, target, company, d)
+            else:
+                rec.amount_mxn = rec.amount or 0.0
+                rec.amount_internal_mxn = rec.amount_internal or 0.0
 
     # ------------------------------------------------------------------
     # Control interno: helpers de permiso/mirror
@@ -520,20 +571,39 @@ class CashReceipt(models.Model):
         return domain
 
     @api.model
-    def get_dashboard_data(self, period='month', date_from=False, date_to=False):
-        """Recopila KPIs y series para el dashboard de efectivo."""
+    def _resolve_currency_mode(self, currency_mode):
+        """Normaliza el modo de divisa → (modo, dominio_extra, divisa_display).
+        'all_mxn' = todo convertido a MXN; 'mxn' = solo MXN; 'usd' = solo USD."""
+        usd = self.env.ref('base.USD', raise_if_not_found=False)
+        mxn = self.env.ref('base.MXN', raise_if_not_found=False)
+        company_cur = self.env.company.currency_id
+        if currency_mode == 'usd' and usd:
+            return 'usd', [('currency_id', '=', usd.id)], usd
+        if currency_mode == 'mxn' and mxn:
+            return 'mxn', [('currency_id', '=', mxn.id)], mxn
+        return 'all_mxn', [], (mxn or company_cur)
+
+    @api.model
+    def get_dashboard_data(self, period='month', date_from=False, date_to=False, currency_mode='all_mxn'):
+        """Recopila KPIs y series para el dashboard de efectivo, por divisa."""
         self._check_internal_access()
         df, dt = self._resolve_period(period, date_from, date_to)
-        receipts = self.search(self._period_domain(df, dt), order='date asc')
+        currency_mode, cur_domain, disp_cur = self._resolve_currency_mode(currency_mode)
         company_cur = self.env.company.currency_id
+        receipts = self.search(self._period_domain(df, dt) + cur_domain, order='date asc')
+        consolidated = currency_mode == 'all_mxn'
 
-        # Efectivo en caja por recibo = cobrado − depositado a cuenta. Se calcula
-        # en vivo (no se usa el campo almacenado) para no arrastrar valores viejos.
+        # Consolidado → equivalente MXN (DOF de la fecha). Por divisa → monto
+        # original. Efectivo en caja = cobrado − depositado a cuenta.
+        def _val(r):
+            return r.amount_mxn if consolidated else r.amount
+        def _valint(r):
+            return r.amount_internal_mxn if consolidated else r.amount_internal
         def _en_caja(r):
-            return (r.amount or 0.0) - (r.amount_internal or 0.0)
+            return _val(r) - _valint(r)
 
-        total_official = sum(receipts.mapped('amount'))
-        total_real = sum(receipts.mapped('amount_internal'))
+        total_official = sum(_val(r) for r in receipts)
+        total_real = sum(_valint(r) for r in receipts)
         total_diff = total_official - total_real
         with_diff = receipts.filtered(lambda r: abs(_en_caja(r)) > 0.001)
         shortage = sum(_en_caja(r) for r in receipts if _en_caja(r) > 0)
@@ -566,8 +636,8 @@ class CashReceipt(models.Model):
             b = buckets.get(k)
             if b is None:
                 continue
-            b['official'] += r.amount
-            b['real'] += r.amount_internal
+            b['official'] += _val(r)
+            b['real'] += _valint(r)
             b['diff'] += _en_caja(r)
 
         series = list(buckets.values())
@@ -579,7 +649,7 @@ class CashReceipt(models.Model):
             if not p:
                 continue
             entry = by_partner.setdefault(p.id, {'name': p.display_name, 'real': 0.0, 'diff': 0.0})
-            entry['real'] += r.amount_internal
+            entry['real'] += _valint(r)
             entry['diff'] += _en_caja(r)
         top_partners = sorted(by_partner.values(), key=lambda e: e['real'], reverse=True)[:8]
         # Retención (efectivo en caja) por cliente
@@ -596,9 +666,10 @@ class CashReceipt(models.Model):
                 'date': fields.Datetime.context_timestamp(self, r.date).strftime('%d/%m/%Y') if r.date else '',
                 'partner': r.partner_id.display_name or '',
                 'orders': ', '.join(r.sale_order_ids.mapped('name')),
-                'official': r.amount,
-                'real': r.amount_internal,
+                'official': _val(r),
+                'real': _valint(r),
                 'diff': _en_caja(r),
+                'cur': r.currency_id.name or '',
                 'state': r.state,
             })
 
@@ -607,10 +678,15 @@ class CashReceipt(models.Model):
         retention_rate = (total_diff / total_official * 100.0) if total_official else 0.0
         avg_retention = (total_diff / count) if count else 0.0
         avg_ticket = (total_official / count) if count else 0.0
-        pending_total = sum(receipts.mapped('partner_id').mapped('credit'))
-        max_r = max(receipts, key=lambda r: r.amount, default=None)
+        pending_company = sum(receipts.mapped('partner_id').mapped('credit'))
+        if disp_cur and company_cur and disp_cur != company_cur:
+            pending_total = company_cur._convert(
+                pending_company, disp_cur, self.env.company, fields.Date.context_today(self))
+        else:
+            pending_total = pending_company
+        max_r = max(receipts, key=lambda r: _val(r), default=None)
         max_receipt = {
-            'name': max_r.name, 'value': max_r.amount,
+            'name': max_r.name, 'value': _val(max_r),
             'partner': max_r.partner_id.display_name,
         } if max_r else {'name': '', 'value': 0.0, 'partner': ''}
         states = {'draft': 0, 'delivered': 0, 'paid': 0}
@@ -618,15 +694,20 @@ class CashReceipt(models.Model):
             if r.state in states:
                 states[r.state] += 1
 
-        # Comparativo contra el periodo inmediato anterior (mismo tamaño)
+        # Mezcla de divisas en el periodo (sin filtrar por modo) para el selector.
+        all_period = self.search(self._period_domain(df, dt))
+        usd_count = len(all_period.filtered('is_usd'))
+        mix = {'usd': usd_count, 'mxn': len(all_period) - usd_count}
+
+        # Comparativo contra el periodo inmediato anterior (mismo modo de divisa)
         prev = {'official': 0.0, 'real': 0.0, 'diff': 0.0}
         if df and dt:
             length = (dt - df).days + 1
             prev_dt = df - timedelta(days=1)
             prev_df = prev_dt - timedelta(days=length - 1)
-            prev_receipts = self.search(self._period_domain(prev_df, prev_dt))
-            prev['official'] = sum(prev_receipts.mapped('amount'))
-            prev['real'] = sum(prev_receipts.mapped('amount_internal'))
+            prev_receipts = self.search(self._period_domain(prev_df, prev_dt) + cur_domain)
+            prev['official'] = sum(_val(r) for r in prev_receipts)
+            prev['real'] = sum(_valint(r) for r in prev_receipts)
             prev['diff'] = prev['official'] - prev['real']
 
         def _delta(cur, pre):
@@ -635,7 +716,10 @@ class CashReceipt(models.Model):
             return 100.0 if cur else 0.0
 
         return {
-            'currency': {'symbol': company_cur.symbol or '$', 'position': company_cur.position or 'before'},
+            'currency': {'symbol': disp_cur.symbol or '$', 'position': disp_cur.position or 'before', 'label': disp_cur.name or ''},
+            'currency_mode': currency_mode,
+            'consolidated': consolidated,
+            'mix': mix,
             'period': period,
             'date_from': df and fields.Date.to_string(df) or '',
             'date_to': dt and fields.Date.to_string(dt) or '',
@@ -672,16 +756,17 @@ class CashReceipt(models.Model):
         }
 
     @api.model
-    def action_print_period_report(self, period='month', date_from=False, date_to=False):
-        """Devuelve la acción de reporte PDF de los recibos del periodo."""
+    def action_print_period_report(self, period='month', date_from=False, date_to=False, currency_mode='all_mxn'):
+        """Devuelve la acción de reporte PDF de los recibos del periodo y divisa."""
         self._check_internal_access()
         df, dt = self._resolve_period(period, date_from, date_to)
-        receipts = self.search(self._period_domain(df, dt), order='date asc')
+        currency_mode, cur_domain, disp_cur = self._resolve_currency_mode(currency_mode)
+        receipts = self.search(self._period_domain(df, dt) + cur_domain, order='date asc')
         if not receipts:
             raise UserError(_('No hay recibos en el periodo seleccionado para imprimir.'))
         return self.env.ref(
             'cash_receipt_voucher.action_report_cash_internal_control'
-        ).report_action(receipts.ids)
+        ).report_action(receipts.ids, data={'currency_mode': currency_mode})
 
     @api.model
     def action_open_cash_receipt(self, receipt_id):

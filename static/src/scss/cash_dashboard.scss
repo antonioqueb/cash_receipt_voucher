@@ -386,4 +386,23 @@
     .o_cash_rank_fill_orange {
         background: linear-gradient(90deg, #fbbf24 0%, #d97706 100%) !important;
     }
+
+    // ----------------------------------------------------------- DIVISA
+    .o_cash_currencybar {
+        display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+        margin-bottom: 1rem;
+        .o_cash_curtitle {
+            font-size: 0.8rem; font-weight: 700; color: var(--cash-blue-900);
+            display: inline-flex; gap: 0.35rem; align-items: center;
+        }
+        .o_cash_curbadge { font-size: 0.8rem; color: var(--cash-muted); b { color: var(--cash-blue-700); } }
+        .o_cash_curhint {
+            font-size: 0.76rem; color: #b45309; display: inline-flex; gap: 0.3rem; align-items: center;
+            background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 2px 8px;
+        }
+    }
+    .o_cash_curtag {
+        display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--cash-blue-700);
+        background: #eaf2ff; border-radius: 6px; padding: 1px 6px;
+    }
 }

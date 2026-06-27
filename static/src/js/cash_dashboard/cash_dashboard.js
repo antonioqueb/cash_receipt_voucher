@@ -13,6 +13,12 @@ const PERIODS = [
     { key: "custom", label: "Personalizado" },
 ];
 
+const CURRENCIES = [
+    { key: "all_mxn", label: "Consolidado MXN" },
+    { key: "mxn", label: "Solo MXN" },
+    { key: "usd", label: "Solo USD" },
+];
+
 export class CashDashboard extends Component {
     static template = "cash_receipt_voucher.CashDashboard";
 
@@ -21,10 +27,12 @@ export class CashDashboard extends Component {
         this.action = useService("action");
         this.notification = useService("notification");
         this.periods = PERIODS;
+        this.currencies = CURRENCIES;
         this.state = useState({
             loading: true,
             printing: false,
             period: "month",
+            currencyMode: "all_mxn",
             dateFrom: "",
             dateTo: "",
             data: null,
@@ -44,6 +52,7 @@ export class CashDashboard extends Component {
                     period: this.state.period,
                     date_from: this.state.dateFrom || false,
                     date_to: this.state.dateTo || false,
+                    currency_mode: this.state.currencyMode,
                 }
             );
             this.state.data = data;
@@ -62,6 +71,11 @@ export class CashDashboard extends Component {
         if (key !== "custom") {
             await this.load();
         }
+    }
+
+    async setCurrency(key) {
+        this.state.currencyMode = key;
+        await this.load();
     }
 
     async applyCustom() {
@@ -88,6 +102,7 @@ export class CashDashboard extends Component {
                     period: this.state.period,
                     date_from: this.state.dateFrom || false,
                     date_to: this.state.dateTo || false,
+                    currency_mode: this.state.currencyMode,
                 }
             );
             await this.action.doAction(act);
@@ -112,7 +127,13 @@ export class CashDashboard extends Component {
 
     // ---------------------------------------------------------------- format
     get cur() {
-        return (this.state.data && this.state.data.currency) || { symbol: "$", position: "before" };
+        return (this.state.data && this.state.data.currency) || { symbol: "$", position: "before", label: "MXN" };
+    }
+    get curLabel() {
+        return this.cur.label || "MXN";
+    }
+    get mix() {
+        return (this.state.data && this.state.data.mix) || { usd: 0, mxn: 0 };
     }
 
     money(val) {

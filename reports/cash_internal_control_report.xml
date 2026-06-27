@@ -17,12 +17,18 @@
             <t t-call="web.internal_layout">
                 <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000;">
 
+                    <t t-set="mode" t-value="(data or {}).get('currency_mode') or 'all_mxn'"/>
+                    <t t-set="consolidated" t-value="mode == 'all_mxn'"/>
+                    <t t-set="mxn_cur" t-value="env.ref('base.MXN', raise_if_not_found=False) or env.company.currency_id"/>
+                    <t t-set="mode_label" t-value="'Consolidado en MXN (tipo de cambio DOF de cada fecha)' if consolidated else ('Solo recibos en USD' if mode == 'usd' else 'Solo recibos en MXN')"/>
+
                     <div class="row border-bottom pb-2 mb-3" style="border-color:#000 !important;">
                         <div class="col-8">
                             <h4 class="text-uppercase mb-0" style="font-weight:800; letter-spacing:1px;">
                                 Control Interno de Efectivo
                             </h4>
                             <div style="font-size:9px; color:#666;">Documento interno — no entregar al cliente</div>
+                            <div style="font-size:9.5px; color:#1d4ed8; font-weight:700; margin-top:2px;">Montos en: <span t-esc="mode_label"/></div>
                         </div>
                         <div class="col-4 text-end" style="font-size:12px; color:#505050;">
                             Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
@@ -32,7 +38,7 @@
                     <t t-set="total_official" t-value="0.0"/>
                     <t t-set="total_real" t-value="0.0"/>
                     <t t-set="total_diff" t-value="0.0"/>
-                    <t t-set="rep_currency" t-value="docs[:1].currency_id or env.company.currency_id"/>
+                    <t t-set="rep_currency" t-value="mxn_cur if consolidated else (docs[:1].currency_id or env.company.currency_id)"/>
 
                     <table class="table table-sm" style="width:100%; font-size:9px; border-collapse:collapse;">
                         <thead>
@@ -49,26 +55,31 @@
                         </thead>
                         <tbody>
                             <t t-foreach="docs" t-as="doc">
-                                <t t-set="total_official" t-value="total_official + doc.amount"/>
-                                <t t-set="total_real" t-value="total_real + doc.amount_internal"/>
-                                <t t-set="total_diff" t-value="total_diff + (doc.amount - doc.amount_internal)"/>
+                                <t t-set="r_cur" t-value="mxn_cur if consolidated else doc.currency_id"/>
+                                <t t-set="r_official" t-value="doc.amount_mxn if consolidated else doc.amount"/>
+                                <t t-set="r_account" t-value="doc.amount_internal_mxn if consolidated else doc.amount_internal"/>
+                                <t t-set="r_caja" t-value="r_official - r_account"/>
+                                <t t-set="r_pending" t-value="doc.partner_id.credit if r_cur == doc.company_id.currency_id else doc.company_id.currency_id._convert(doc.partner_id.credit, r_cur, doc.company_id, doc.date.date())"/>
+                                <t t-set="total_official" t-value="total_official + r_official"/>
+                                <t t-set="total_real" t-value="total_real + r_account"/>
+                                <t t-set="total_diff" t-value="total_diff + r_caja"/>
                                 <tr style="page-break-inside:avoid;">
                                     <td><strong t-field="doc.name"/></td>
                                     <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
                                     <td><span t-field="doc.partner_id.name"/></td>
                                     <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
                                     <td class="text-end" style="white-space:nowrap;">
-                                        <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                        <span t-esc="r_official" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
                                     <td class="text-end" style="white-space:nowrap;">
-                                        <span t-field="doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                        <span t-esc="r_account" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
                                     <td class="text-end"
-                                        t-attf-style="white-space:nowrap; font-weight:700; color:#{'d97706' if (doc.amount - doc.amount_internal) &gt; 0 else '2563eb' if (doc.amount - doc.amount_internal) &lt; 0 else '000'};">
-                                        <span t-esc="doc.amount - doc.amount_internal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                                        t-attf-style="white-space:nowrap; font-weight:700; color:#{'d97706' if r_caja &gt; 0 else '2563eb' if r_caja &lt; 0 else '000'};">
+                                        <span t-esc="r_caja" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
                                     <td class="text-end" style="white-space:nowrap;">
-                                        <span t-esc="doc.partner_id.credit" t-options="{'widget': 'monetary', 'display_currency': doc.company_id.currency_id}"/>
+                                        <span t-esc="r_pending" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
                                 </tr>
                             </t>
