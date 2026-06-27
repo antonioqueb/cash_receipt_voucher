@@ -766,7 +766,10 @@ class CashReceipt(models.Model):
             raise UserError(_('No hay recibos en el periodo seleccionado para imprimir.'))
         return self.env.ref(
             'cash_receipt_voucher.action_report_cash_internal_control'
-        ).report_action(receipts.ids, data={'currency_mode': currency_mode})
+        ).report_action(receipts.ids, data={
+            'currency_mode': currency_mode,
+            'docids': receipts.ids,
+        })
 
     @api.model
     def action_open_cash_receipt(self, receipt_id):
@@ -800,3 +803,24 @@ class CashReceipt(models.Model):
             # Sugerir el monto total pendiente
             if not self.amount:
                 self.amount = sum(self.sale_order_ids.mapped('amount_total'))
+
+
+class ReportCashInternalControl(models.AbstractModel):
+    """Parser del reporte de control interno. Recupera los recibos y el modo de
+    divisa desde 'data' (necesario porque al pasar data a report_action los
+    docids no viajan en la URL del reporte)."""
+    _name = 'report.cash_receipt_voucher.report_cash_internal_control'
+    _description = 'Reporte de Control Interno de Efectivo'
+
+    @api.model
+    def _get_report_values(self, docids, data=None):
+        data = data or {}
+        ids = docids or data.get('docids') or self.env.context.get('active_ids') or []
+        docs = self.env['cash.receipt'].browse(ids)
+        return {
+            'doc_ids': docs.ids,
+            'doc_model': 'cash.receipt',
+            'docs': docs,
+            'data': data,
+            'currency_mode': data.get('currency_mode') or 'all_mxn',
+        }

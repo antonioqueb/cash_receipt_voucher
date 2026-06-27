@@ -17,7 +17,7 @@
             <t t-call="web.internal_layout">
                 <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000;">
 
-                    <t t-set="mode" t-value="(data or {}).get('currency_mode') or 'all_mxn'"/>
+                    <t t-set="mode" t-value="currency_mode or 'all_mxn'"/>
                     <t t-set="consolidated" t-value="mode == 'all_mxn'"/>
                     <t t-set="mxn_cur" t-value="env.ref('base.MXN', raise_if_not_found=False) or env.company.currency_id"/>
                     <t t-set="mode_label" t-value="'Consolidado en MXN (tipo de cambio DOF de cada fecha)' if consolidated else ('Solo recibos en USD' if mode == 'usd' else 'Solo recibos en MXN')"/>
