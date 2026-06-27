@@ -54,7 +54,7 @@
                                 <tr style="page-break-inside:avoid;">
                                     <td><strong t-field="doc.name"/></td>
                                     <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
-                                    <td t-field="doc.partner_id.name"/>
+                                    <td><span t-field="doc.partner_id.name"/></td>
                                     <td class="text-end" style="white-space:nowrap;">
                                         <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
                                     </td>
@@ -65,7 +65,7 @@
                                         t-attf-style="white-space:nowrap; font-weight:700; color:#{'b00020' if doc.amount_internal_diff &gt; 0 else '0a7d28' if doc.amount_internal_diff &lt; 0 else '000'};">
                                         <span t-field="doc.amount_internal_diff" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
                                     </td>
-                                    <td t-field="doc.internal_diff_reason"/>
+                                    <td><span t-field="doc.internal_diff_reason"/></td>
                                 </tr>
                             </t>
                         </tbody>
