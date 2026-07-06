@@ -343,11 +343,31 @@ class CashReceipt(models.Model):
         return res
 
     @api.model
+    def _duplicate_window_minutes(self):
+        """Ventana anti-duplicados configurable (default 30 minutos).
+
+        Antes era fija de 60 segundos: solo cubría el doble-clic. Con 30
+        minutos también atrapa re-capturas diferidas (el cajero vuelve a
+        registrar el mismo cobro minutos después). Se ajusta con el parámetro
+        'cash_receipt_voucher.duplicate_window_minutes' (0 = desactivado).
+        """
+        param = self.env['ir.config_parameter'].sudo().get_param(
+            'cash_receipt_voucher.duplicate_window_minutes', '30',
+        )
+        try:
+            return max(int(param), 0)
+        except (TypeError, ValueError):
+            return 30
+
+    @api.model
     def _check_recent_duplicate(self, vals):
-        """Evita recibos duplicados por doble-clic: bloquea crear un recibo
-        idéntico (mismo cliente, monto, divisa y pedidos) creado hace menos de un
-        minuto. El registro unificado lo omite con 'skip_duplicate_check'."""
+        """Evita recibos duplicados: bloquea crear un recibo idéntico (mismo
+        cliente, monto, divisa y pedidos) dentro de la ventana configurable.
+        El registro unificado lo omite con 'skip_duplicate_check'."""
         if self.env.context.get('skip_duplicate_check'):
+            return
+        minutes = self._duplicate_window_minutes()
+        if not minutes:
             return
         partner_id = vals.get('partner_id')
         amount = vals.get('amount')
@@ -361,7 +381,7 @@ class CashReceipt(models.Model):
                 order_ids = list(cmd[2] or [])
             elif cmd[0] == 4 and len(cmd) > 1:
                 order_ids.append(cmd[1])
-        threshold = fields.Datetime.now() - timedelta(seconds=60)
+        threshold = fields.Datetime.now() - timedelta(minutes=minutes)
         domain = [
             ('partner_id', '=', partner_id),
             ('amount', '=', amount),
@@ -376,10 +396,11 @@ class CashReceipt(models.Model):
         if dup:
             raise UserError(_(
                 'Ya se registró un recibo de efectivo idéntico (%(name)s) hace '
-                'menos de un minuto. Para evitar duplicados no se creará otro.\n'
+                'menos de %(minutes)s minutos. Para evitar duplicados no se '
+                'creará otro.\n'
                 'Si de verdad necesitas un segundo recibo por el mismo monto, '
-                'espera un minuto o cancela el anterior.'
-            ) % {'name': dup.name})
+                'espera a que pase la ventana o cancela el anterior.'
+            ) % {'name': dup.name, 'minutes': minutes})
 
     def action_deliver(self):
         """Marcar como entregado al cliente"""
