@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="view_cash_disbursement_list" model="ir.ui.view">
+        <field name="name">cash.disbursement.list</field>
+        <field name="model">cash.disbursement</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancelled'" default_order="date desc">
+                <field name="name"/>
+                <field name="date"/>
+                <field name="delivered_to"/>
+                <field name="concept"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+                <field name="amount" sum="Total"/>
+                <field name="currency_id"/>
+                <field name="amount_mxn" string="MXN" sum="Total MXN" optional="show"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_cash_disbursement_form" model="ir.ui.view">
+        <field name="name">cash.disbursement.form</field>
+        <field name="model">cash.disbursement</field>
+        <field name="arch" type="xml">
+            <form string="Salida de Caja">
+                <header>
+                    <button name="action_cancel" type="object" string="Cancelar"
+                            invisible="state != 'done'"
+                            confirm="¿Cancelar esta salida de caja? El saldo de caja se restaurará."
+                            groups="cash_receipt_voucher.group_cash_internal_control_edit"/>
+                    <button name="action_restore" type="object" string="Restaurar"
+                            invisible="state != 'cancelled'"
+                            groups="cash_receipt_voucher.group_cash_internal_control_edit"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="amount"/>
+                            <field name="currency_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="amount_mxn" string="Equivalente MXN"/>
+                        </group>
+                        <group>
+                            <field name="delivered_to"/>
+                            <field name="partner_id"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="concept" nolabel="1"
+                               placeholder="Concepto o motivo interno de la salida (gasolina, viáticos, compra menor, préstamo, etc.)"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_cash_disbursement" model="ir.actions.act_window">
+        <field name="name">Salidas de Caja</field>
+        <field name="res_model">cash.disbursement</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Registra la primera salida de caja chica</p>
+            <p>Cada salida disminuye automáticamente el saldo de caja del dashboard.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_efectivo_salidas"
+              name="Salidas de Caja"
+              parent="menu_efectivo_root"
+              action="action_cash_disbursement"
+              sequence="25"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+
+</odoo>

@@ -614,6 +614,11 @@ class CashReceipt(models.Model):
         receipts = self.search(self._period_domain(df, dt) + cur_domain, order='date asc')
         consolidated = currency_mode == 'all_mxn'
 
+        # Salidas de caja chica del periodo (mismo criterio de divisa). Restan
+        # el saldo en caja: sin esto el dashboard se infla y nunca cuadra.
+        disbursements = self.env['cash.disbursement'].search(
+            self._period_domain(df, dt) + cur_domain)
+
         # Consolidado → equivalente MXN (DOF de la fecha). Por divisa → monto
         # original. Efectivo en caja = cobrado − depositado a cuenta.
         def _val(r):
@@ -623,9 +628,14 @@ class CashReceipt(models.Model):
         def _en_caja(r):
             return _val(r) - _valint(r)
 
+        def _val_out(o):
+            return o.amount_mxn if consolidated else o.amount
+
         total_official = sum(_val(r) for r in receipts)
         total_real = sum(_valint(r) for r in receipts)
         total_diff = total_official - total_real
+        total_out = sum(_val_out(o) for o in disbursements)
+        cash_on_hand = total_diff - total_out
         with_diff = receipts.filtered(lambda r: abs(_en_caja(r)) > 0.001)
         shortage = sum(_en_caja(r) for r in receipts if _en_caja(r) > 0)
         overage = sum(-_en_caja(r) for r in receipts if _en_caja(r) < 0)
@@ -660,6 +670,15 @@ class CashReceipt(models.Model):
             b['official'] += _val(r)
             b['real'] += _valint(r)
             b['diff'] += _en_caja(r)
+
+        for o in disbursements:
+            if not o.date:
+                continue
+            local = fields.Datetime.context_timestamp(self, o.date)
+            k = local.strftime('%Y-%m') if group == 'month' else local.strftime('%Y-%m-%d')
+            b = buckets.get(k)
+            if b is not None:
+                b['diff'] -= _val_out(o)
 
         series = list(buckets.values())
 
@@ -759,6 +778,9 @@ class CashReceipt(models.Model):
                 'shortage': shortage,
                 'overage': overage,
                 'pending_total': pending_total,
+                'total_out': total_out,
+                'out_count': len(disbursements),
+                'cash_on_hand': cash_on_hand,
             },
             'max_receipt': max_receipt,
             'states': states,

@@ -94,13 +94,22 @@
                         <div class="o_cash_card_foot"><t t-esc="pct(kpis.deposit_rate)"/> del cobrado</div>
                     </div>
 
-                    <div class="o_cash_card" t-att-class="kpis.total_diff &lt; 0 ? 'o_cash_grad_slate' : 'o_cash_grad_orange'">
+                    <div class="o_cash_card" t-att-class="kpis.cash_on_hand &lt; 0 ? 'o_cash_grad_slate' : 'o_cash_grad_orange'">
                         <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Efectivo en caja</span>
+                            <span class="o_cash_card_label">Saldo en caja</span>
                             <i class="fa fa-money"/>
                         </div>
-                        <div class="o_cash_card_value" t-esc="money(kpis.total_diff)"/>
-                        <div class="o_cash_card_foot">caja chica · <t t-esc="pct(kpis.retention_rate)"/> retenido</div>
+                        <div class="o_cash_card_value" t-esc="money(kpis.cash_on_hand)"/>
+                        <div class="o_cash_card_foot">retenido <t t-esc="money(kpis.total_diff)"/> − salidas <t t-esc="money(kpis.total_out)"/></div>
+                    </div>
+
+                    <div class="o_cash_card o_cash_grad_slate">
+                        <div class="o_cash_card_top">
+                            <span class="o_cash_card_label">Salidas de caja</span>
+                            <i class="fa fa-sign-out"/>
+                        </div>
+                        <div class="o_cash_card_value" t-esc="money(kpis.total_out)"/>
+                        <div class="o_cash_card_foot"><t t-esc="int(kpis.out_count)"/> salida(s) en el periodo</div>
                     </div>
 
                     <div class="o_cash_card o_cash_card_light">
