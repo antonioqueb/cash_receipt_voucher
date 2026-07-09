@@ -101,6 +101,68 @@
                         </tfoot>
                     </table>
 
+                    <!-- ══════ SALIDAS DE CAJA del rango de fechas de los recibos ══════ -->
+                    <t t-set="d_list" t-value="[d for d in docs.mapped('date') if d]"/>
+                    <t t-set="salida_domain" t-value="[('state', '!=', 'cancelled')]"/>
+                    <t t-if="d_list">
+                        <t t-set="salida_domain" t-value="salida_domain + [('date', '&gt;=', min(d_list).replace(hour=0, minute=0, second=0)), ('date', '&lt;=', max(d_list).replace(hour=23, minute=59, second=59))]"/>
+                    </t>
+                    <t t-if="not consolidated and docs">
+                        <t t-set="salida_domain" t-value="salida_domain + [('currency_id', '=', docs[:1].currency_id.id)]"/>
+                    </t>
+                    <t t-set="salidas" t-value="docs.env['cash.disbursement'].sudo().search(salida_domain, order='date asc')"/>
+                    <t t-set="total_out" t-value="0.0"/>
+
+                    <t t-if="salidas">
+                        <h6 class="text-uppercase" style="font-weight:800; letter-spacing:1px; margin-top:16px;">
+                            Salidas de Caja
+                            <span style="font-weight:400; font-size:9px; color:#666;">(mismo rango de fechas)</span>
+                        </h6>
+                        <table class="table table-sm" style="width:100%; font-size:9px; border-collapse:collapse;">
+                            <thead>
+                                <tr style="background-color:#2f2f2f; color:#fff;">
+                                    <th style="color:#fff;">Folio</th>
+                                    <th style="color:#fff;">Fecha</th>
+                                    <th style="color:#fff;">Entregado a</th>
+                                    <th style="color:#fff;">Concepto</th>
+                                    <th style="color:#fff;">Responsable</th>
+                                    <th class="text-end" style="color:#fff;">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="salidas" t-as="sal">
+                                    <t t-set="s_cur" t-value="mxn_cur if consolidated else sal.currency_id"/>
+                                    <t t-set="s_amount" t-value="sal.amount_mxn if consolidated else sal.amount"/>
+                                    <t t-set="total_out" t-value="total_out + s_amount"/>
+                                    <tr style="page-break-inside:avoid;">
+                                        <td><strong t-field="sal.name"/></td>
+                                        <td><span t-field="sal.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                        <td><span t-field="sal.delivered_to"/></td>
+                                        <td><span t-esc="(sal.concept or '')[:70]"/></td>
+                                        <td><span t-field="sal.user_id.name"/></td>
+                                        <td class="text-end" style="white-space:nowrap; color:#b45309; font-weight:700;">
+                                            − <span t-esc="s_amount" t-options="{'widget': 'monetary', 'display_currency': s_cur}"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color:#f2f2f2; font-weight:800;">
+                                    <td colspan="5" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Total salidas</td>
+                                    <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap; color:#b45309;">
+                                        − <span t-esc="total_out" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </t>
+
+                    <!-- ══════ SALDO NETO EN CAJA ══════ -->
+                    <div class="text-end" style="margin-top:10px; padding:8px 12px; background-color:#2f2f2f; color:#fff; font-size:11px; font-weight:800;">
+                        SALDO NETO EN CAJA (entradas retenidas − salidas):
+                        <span t-esc="total_diff - total_out" t-options="{'widget': 'monetary', 'display_currency': rep_currency}" style="margin-left:8px;"/>
+                    </div>
+
                     <div style="margin-top:18px; border:1px solid #ccc; padding:8px; background-color:#fafafa; font-size:9px; color:#555;">
                         <strong style="color:#333;">CONFIDENCIAL.</strong>
                         <b>Cobrado</b> = lo que pagó el cliente (único monto reflejado en el recibo,

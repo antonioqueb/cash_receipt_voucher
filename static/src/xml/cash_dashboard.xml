@@ -112,14 +112,6 @@
                         <div class="o_cash_card_foot"><t t-esc="int(kpis.out_count)"/> salida(s) en el periodo</div>
                     </div>
 
-                    <div class="o_cash_card o_cash_card_light">
-                        <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Recibos</span>
-                            <i class="fa fa-file-text-o"/>
-                        </div>
-                        <div class="o_cash_card_value o_cash_dark" t-esc="int(kpis.count)"/>
-                        <div class="o_cash_card_foot"><t t-esc="int(kpis.with_diff_count)"/> con retención · <t t-esc="int(kpis.partners_count)"/> clientes</div>
-                    </div>
                 </div>
 
                 <!-- MAIN GRID -->
@@ -299,6 +291,43 @@
                                 </tr>
                                 <tr t-if="!recent.length">
                                     <td colspan="9" class="o_cash_empty">Sin recibos en el periodo.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Salidas de caja recientes -->
+                <div class="o_cash_panel">
+                    <div class="o_cash_panel_head"><h3>Salidas de caja recientes</h3></div>
+                    <div class="o_cash_table_wrap">
+                        <table class="o_cash_table">
+                            <thead>
+                                <tr>
+                                    <th>Folio</th>
+                                    <th>Fecha</th>
+                                    <th>Entregado a</th>
+                                    <th>Concepto</th>
+                                    <th>Responsable</th>
+                                    <th>Div</th>
+                                    <th class="text-end">Monto</th>
+                                    <th/>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="recentOut" t-as="o" t-key="o.id" class="o_cash_row"
+                                    t-on-click="() => this.openDisbursement(o.id)">
+                                    <td><b t-esc="o.name"/></td>
+                                    <td t-esc="o.date"/>
+                                    <td t-esc="o.delivered_to"/>
+                                    <td t-esc="o.concept"/>
+                                    <td t-esc="o.user"/>
+                                    <td><span class="o_cash_curtag" t-esc="o.cur"/></td>
+                                    <td class="text-end o_cash_orange_txt"><b>− <t t-esc="money(o.amount)"/></b></td>
+                                    <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
+                                </tr>
+                                <tr t-if="!recentOut.length">
+                                    <td colspan="8" class="o_cash_empty">Sin salidas de caja en el periodo.</td>
                                 </tr>
                             </tbody>
                         </table>

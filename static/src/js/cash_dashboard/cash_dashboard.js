@@ -172,6 +172,19 @@ export class CashDashboard extends Component {
     get recent() {
         return (this.state.data && this.state.data.recent) || [];
     }
+    get recentOut() {
+        return (this.state.data && this.state.data.recent_out) || [];
+    }
+
+    openDisbursement(id) {
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            res_model: "cash.disbursement",
+            res_id: id,
+            views: [[false, "form"]],
+            target: "current",
+        });
+    }
 
     get seriesMax() {
         let m = 0;

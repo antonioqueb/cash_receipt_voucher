@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Reporte PDF de la Salida de Caja. Sin binding al menú Imprimir:
+         se imprime desde el botón del formulario (grupo de control interno). -->
+    <record id="action_report_cash_disbursement" model="ir.actions.report">
+        <field name="name">Salida de Caja</field>
+        <field name="model">cash.disbursement</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cash_receipt_voucher.report_cash_disbursement</field>
+        <field name="report_file">cash_receipt_voucher.report_cash_disbursement</field>
+        <field name="print_report_name">'Salida de Caja - %s' % (object.name or '')</field>
+    </record>
+
+    <template id="report_cash_disbursement">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-call="web.internal_layout">
+                    <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color:#000;">
+
+                        <div class="row border-bottom pb-2 mb-3" style="border-color:#000 !important;">
+                            <div class="col-8">
+                                <h4 class="text-uppercase mb-0" style="font-weight:800; letter-spacing:1px;">
+                                    Salida de Caja Chica
+                                </h4>
+                                <div style="font-size:9px; color:#666;">Documento interno — no entregar al cliente</div>
+                            </div>
+                            <div class="col-4 text-end">
+                                <div style="font-size:15px; font-weight:800;" t-field="doc.name"/>
+                                <div style="font-size:10px; color:#505050;">
+                                    <span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center" style="margin:18px 0; padding:14px; border:2px solid #2f2f2f; border-radius:8px;">
+                            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#666;">Monto entregado</div>
+                            <div style="font-size:26px; font-weight:800;">
+                                − <span t-field="doc.amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/>
+                            </div>
+                            <div t-if="doc.currency_id != doc.mxn_currency_id" style="font-size:10px; color:#666;">
+                                Equivalente: <span t-field="doc.amount_mxn" t-options="{'widget': 'monetary', 'display_currency': doc.mxn_currency_id}"/>
+                                (tipo de cambio de la fecha)
+                            </div>
+                        </div>
+
+                        <table class="table table-sm" style="font-size:11px;">
+                            <tbody>
+                                <tr>
+                                    <td style="width:30%; font-weight:700; background:#f5f5f5;">Entregado a</td>
+                                    <td><span t-field="doc.delivered_to"/>
+                                        <span t-if="doc.partner_id"> — <span t-field="doc.partner_id.name"/></span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:700; background:#f5f5f5;">Concepto / Motivo</td>
+                                    <td><span t-field="doc.concept"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight:700; background:#f5f5f5;">Usuario responsable</td>
+                                    <td><span t-field="doc.user_id.name"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="row" style="margin-top:60px;">
+                            <div class="col-6 text-center">
+                                <div style="border-top:1px solid #000; margin:0 30px; padding-top:6px; font-size:10px;">
+                                    Entregó (responsable de caja)
+                                </div>
+                            </div>
+                            <div class="col-6 text-center">
+                                <div style="border-top:1px solid #000; margin:0 30px; padding-top:6px; font-size:10px;">
+                                    Recibió: <span t-field="doc.delivered_to"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:22px; border:1px solid #ccc; padding:8px; background-color:#fafafa; font-size:9px; color:#555;">
+                            <strong style="color:#333;">CONFIDENCIAL.</strong>
+                            Esta salida disminuye el saldo del control interno de efectivo.
+                            No afecta contabilidad ni pagos oficiales.
+                        </div>
+
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>

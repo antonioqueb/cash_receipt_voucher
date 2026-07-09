@@ -27,6 +27,9 @@
         <field name="arch" type="xml">
             <form string="Salida de Caja">
                 <header>
+                    <button name="%(cash_receipt_voucher.action_report_cash_disbursement)d"
+                            type="action" string="Imprimir Salida"
+                            class="btn-primary" icon="fa-print"/>
                     <button name="action_cancel" type="object" string="Cancelar"
                             invisible="state != 'done'"
                             confirm="¿Cancelar esta salida de caja? El saldo de caja se restaurará."

@@ -713,6 +713,20 @@ class CashReceipt(models.Model):
                 'state': r.state,
             })
 
+        # --- Salidas recientes (máx 8) ---
+        recent_out = []
+        for o in disbursements.sorted(key=lambda x: x.date or datetime.min, reverse=True)[:8]:
+            recent_out.append({
+                'id': o.id,
+                'name': o.name,
+                'date': fields.Datetime.context_timestamp(self, o.date).strftime('%d/%m/%Y') if o.date else '',
+                'delivered_to': o.delivered_to or '',
+                'concept': (o.concept or '')[:60],
+                'user': o.user_id.name or '',
+                'amount': _val_out(o),
+                'cur': o.currency_id.name or '',
+            })
+
         # --- Indicadores de dirección ---
         deposit_rate = (total_real / total_official * 100.0) if total_official else 0.0
         retention_rate = (total_diff / total_official * 100.0) if total_official else 0.0
@@ -782,6 +796,7 @@ class CashReceipt(models.Model):
                 'out_count': len(disbursements),
                 'cash_on_hand': cash_on_hand,
             },
+            'recent_out': recent_out,
             'max_receipt': max_receipt,
             'states': states,
             'prev': prev,
