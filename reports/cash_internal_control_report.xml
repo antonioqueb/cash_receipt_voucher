@@ -16,6 +16,7 @@
         <t t-call="web.html_container">
             <t t-call="web.internal_layout">
                 <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000;">
+                    <t t-call="stock_lot_dimensions.som_report_style"/>
 
                     <t t-set="mode" t-value="currency_mode or 'all_mxn'"/>
                     <t t-set="consolidated" t-value="mode == 'all_mxn'"/>
@@ -24,13 +25,13 @@
 
                     <div class="row border-bottom pb-2 mb-3" style="border-color:#000 !important;">
                         <div class="col-8">
-                            <h4 class="text-uppercase mb-0" style="font-weight:800; letter-spacing:1px;">
+                            <h4 class="som-doc-title mb-0">
                                 Control Interno de Efectivo
                             </h4>
-                            <div style="font-size:9px; color:#666;">Documento interno — no entregar al cliente</div>
-                            <div style="font-size:9.5px; color:#1d4ed8; font-weight:700; margin-top:2px;">Montos en: <span t-esc="mode_label"/></div>
+                            <div class="som-small som-muted">Documento interno — no entregar al cliente</div>
+                            <div style="font-size:9.5px; font-weight:700; margin-top:2px;">Montos en: <span t-esc="mode_label"/></div>
                         </div>
-                        <div class="col-4 text-end" style="font-size:12px; color:#505050;">
+                        <div class="col-4 text-end som-doc-subtitle">
                             Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
                         </div>
                     </div>
@@ -40,17 +41,17 @@
                     <t t-set="total_diff" t-value="0.0"/>
                     <t t-set="rep_currency" t-value="mxn_cur if consolidated else (docs[:1].currency_id or env.company.currency_id)"/>
 
-                    <table class="table table-sm" style="width:100%; font-size:9px; border-collapse:collapse;">
+                    <table class="som-table">
                         <thead>
-                            <tr style="background-color:#2f2f2f; color:#fff;">
-                                <th style="color:#fff;">Recibo</th>
-                                <th style="color:#fff;">Pedido</th>
-                                <th style="color:#fff;">Cliente</th>
-                                <th style="color:#fff;">Fecha</th>
-                                <th class="text-end" style="color:#fff;">Cobrado</th>
-                                <th class="text-end" style="color:#fff;">A cuenta</th>
-                                <th class="text-end" style="color:#fff;">En caja</th>
-                                <th class="text-end" style="color:#fff;">Pendiente por cobrar</th>
+                            <tr>
+                                <th style="width:10%;">Recibo</th>
+                                <th style="width:12%;">Pedido</th>
+                                <th style="width:17%;">Cliente</th>
+                                <th style="width:9%;">Fecha</th>
+                                <th class="som-num" style="width:13%;">Cobrado</th>
+                                <th class="som-num" style="width:13%;">A cuenta</th>
+                                <th class="som-num" style="width:12%;">En caja</th>
+                                <th class="som-num" style="width:14%;">Pendiente por cobrar</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -63,22 +64,22 @@
                                 <t t-set="total_official" t-value="total_official + r_official"/>
                                 <t t-set="total_real" t-value="total_real + r_account"/>
                                 <t t-set="total_diff" t-value="total_diff + r_caja"/>
-                                <tr style="page-break-inside:avoid;">
+                                <tr>
                                     <td><strong t-field="doc.name"/></td>
                                     <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
                                     <td><span t-field="doc.partner_id.name"/></td>
                                     <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
-                                    <td class="text-end" style="white-space:nowrap;">
+                                    <td class="som-num">
                                         <span t-esc="r_official" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
-                                    <td class="text-end" style="white-space:nowrap;">
+                                    <td class="som-num">
                                         <span t-esc="r_account" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
-                                    <td class="text-end"
-                                        t-attf-style="white-space:nowrap; font-weight:700; color:#{'d97706' if r_caja &gt; 0 else '2563eb' if r_caja &lt; 0 else '000'};">
+                                    <td class="som-num"
+                                        t-attf-style="font-weight:700; color:#{'d97706' if r_caja &gt; 0 else '2563eb' if r_caja &lt; 0 else '000'};">
                                         <span t-esc="r_caja" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
-                                    <td class="text-end" style="white-space:nowrap;">
+                                    <td class="som-num">
                                         <span t-esc="r_pending" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
                                 </tr>
@@ -86,14 +87,14 @@
                         </tbody>
                         <tfoot>
                             <tr style="background-color:#f2f2f2; font-weight:800;">
-                                <td colspan="4" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Totales</td>
-                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                <td colspan="4" class="text-end som-upper" style="border:1px solid #d8d8d8; padding:4px 6px;">Totales</td>
+                                <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px;">
                                     <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                 </td>
-                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px;">
                                     <span t-esc="total_real" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                 </td>
-                                <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap;">
+                                <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px;">
                                     <span t-esc="total_diff" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                 </td>
                                 <td style="border:1px solid #d8d8d8;"/>
@@ -114,19 +115,19 @@
                     <t t-set="total_out" t-value="0.0"/>
 
                     <t t-if="salidas">
-                        <h6 class="text-uppercase" style="font-weight:800; letter-spacing:1px; margin-top:16px;">
+                        <div class="som-section-title" style="margin-top:16px;">
                             Salidas de Caja
-                            <span style="font-weight:400; font-size:9px; color:#666;">(mismo rango de fechas)</span>
-                        </h6>
-                        <table class="table table-sm" style="width:100%; font-size:9px; border-collapse:collapse;">
+                            <span style="font-weight:400; font-size:9px; color:#666; text-transform:none;">(mismo rango de fechas)</span>
+                        </div>
+                        <table class="som-table">
                             <thead>
-                                <tr style="background-color:#2f2f2f; color:#fff;">
-                                    <th style="color:#fff;">Folio</th>
-                                    <th style="color:#fff;">Fecha</th>
-                                    <th style="color:#fff;">Entregado a</th>
-                                    <th style="color:#fff;">Concepto</th>
-                                    <th style="color:#fff;">Responsable</th>
-                                    <th class="text-end" style="color:#fff;">Monto</th>
+                                <tr>
+                                    <th style="width:10%;">Folio</th>
+                                    <th style="width:9%;">Fecha</th>
+                                    <th style="width:18%;">Entregado a</th>
+                                    <th style="width:33%;">Concepto</th>
+                                    <th style="width:15%;">Responsable</th>
+                                    <th class="som-num" style="width:15%;">Monto</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -134,13 +135,13 @@
                                     <t t-set="s_cur" t-value="mxn_cur if consolidated else sal.currency_id"/>
                                     <t t-set="s_amount" t-value="sal.amount_mxn if consolidated else sal.amount"/>
                                     <t t-set="total_out" t-value="total_out + s_amount"/>
-                                    <tr style="page-break-inside:avoid;">
+                                    <tr>
                                         <td><strong t-field="sal.name"/></td>
                                         <td><span t-field="sal.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
                                         <td><span t-field="sal.delivered_to"/></td>
                                         <td><span t-esc="(sal.concept or '')[:70]"/></td>
                                         <td><span t-field="sal.user_id.name"/></td>
-                                        <td class="text-end" style="white-space:nowrap; color:#b45309; font-weight:700;">
+                                        <td class="som-num" style="color:#b45309; font-weight:700;">
                                             − <span t-esc="s_amount" t-options="{'widget': 'monetary', 'display_currency': s_cur}"/>
                                         </td>
                                     </tr>
@@ -148,8 +149,8 @@
                             </tbody>
                             <tfoot>
                                 <tr style="background-color:#f2f2f2; font-weight:800;">
-                                    <td colspan="5" class="text-end text-uppercase" style="border:1px solid #d8d8d8;">Total salidas</td>
-                                    <td class="text-end" style="border:1px solid #d8d8d8; white-space:nowrap; color:#b45309;">
+                                    <td colspan="5" class="text-end som-upper" style="border:1px solid #d8d8d8; padding:4px 6px;">Total salidas</td>
+                                    <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px; color:#b45309;">
                                         − <span t-esc="total_out" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
                                     </td>
                                 </tr>

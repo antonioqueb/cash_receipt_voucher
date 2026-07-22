@@ -22,17 +22,18 @@
                     <t t-set="information_block" t-value="False"/>
 
                     <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000; line-height: 1.25;">
+                        <t t-call="stock_lot_dimensions.som_report_style"/>
 
                         <!-- ENCABEZADO -->
                         <div class="row border-bottom pb-2 mb-2" style="border-color: #000 !important; align-items: center;">
                             <div class="col-8">
-                                <h4 class="text-uppercase mb-0" style="font-weight: 800; letter-spacing: 1px;">
+                                <h4 class="som-doc-title mb-0">
                                     Salida de Caja <span t-field="o.name" style="margin-left: 10px; color: #333;"/>
                                 </h4>
-                                <div style="font-size: 9px; color: #666;">Documento interno — no entregar al cliente</div>
+                                <div class="som-small som-muted">Documento interno — no entregar al cliente</div>
                             </div>
                             <div class="col-4 text-end">
-                                <div style="font-size: 14px; color: #505050; margin-top: 4px;">
+                                <div class="som-doc-subtitle" style="margin-top: 4px;">
                                     Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
                                 </div>
                             </div>
@@ -48,9 +49,9 @@
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                        <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Entregado a</th>
-                                        <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Detalle de la Salida</th>
-                                        <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Control Interno</th>
+                                        <th class="som-section-title">Entregado a</th>
+                                        <th class="som-section-title">Detalle de la Salida</th>
+                                        <th class="som-section-title">Control Interno</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -68,15 +69,15 @@
 
                                         <!-- DETALLE -->
                                         <td style="vertical-align: top; padding: 0; border: 1px solid #d8d8d8 !important;">
-                                            <div style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #d8d8d8 !important;">
-                                                <div style="display: table-cell; width: 38%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Fecha</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600;">
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Fecha</div>
+                                                <div class="som-info-value">
                                                     <span t-field="o.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/>
                                                 </div>
                                             </div>
-                                            <div style="display: table; width: 100%; table-layout: fixed;">
-                                                <div style="display: table-cell; width: 38%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Divisa</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600;">
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Divisa</div>
+                                                <div class="som-info-value">
                                                     <span t-field="o.currency_id.name"/>
                                                 </div>
                                             </div>
@@ -84,15 +85,15 @@
 
                                         <!-- CONTROL INTERNO -->
                                         <td style="vertical-align: top; padding: 0; border: 1px solid #d8d8d8 !important;">
-                                            <div style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #d8d8d8 !important;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Responsable</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600; overflow-wrap: anywhere; word-break: break-word;">
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Responsable</div>
+                                                <div class="som-info-value">
                                                     <span t-field="o.user_id.name"/>
                                                 </div>
                                             </div>
-                                            <div style="display: table; width: 100%; table-layout: fixed;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Estado</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600;">
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Estado</div>
+                                                <div class="som-info-value">
                                                     <span t-esc="'Registrada' if o.state == 'done' else 'Cancelada'"/>
                                                 </div>
                                             </div>
@@ -118,7 +119,7 @@
                         <table style="font-size: 9px; width: 100%; border-collapse: collapse; border: 1px solid #d8d8d8 !important; margin-bottom: 10px;">
                             <thead>
                                 <tr>
-                                    <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Concepto / Motivo Interno</th>
+                                    <th class="som-section-title">Concepto / Motivo Interno</th>
                                 </tr>
                             </thead>
                             <tbody>

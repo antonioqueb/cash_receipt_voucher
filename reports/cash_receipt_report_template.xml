@@ -9,17 +9,18 @@
                     <t t-set="information_block" t-value="False"/>
 
                     <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000; line-height: 1.25;">
+                        <t t-call="stock_lot_dimensions.som_report_style"/>
 
                         <!-- ============ TÍTULO ============ -->
                         <div class="row border-bottom pb-2 mb-2" style="border-color: #000 !important; align-items: center;">
                             <div class="col-8">
-                                <h4 class="text-uppercase mb-0" style="font-weight: 800; letter-spacing: 1px;">
+                                <h4 class="som-doc-title mb-0">
                                     Recibo de Pago en Efectivo
                                     <span t-field="doc.name" style="margin-left: 10px; color: #333;"/>
                                 </h4>
                             </div>
                             <div class="col-4 text-end">
-                                <div style="font-size: 14px; color: #505050; margin-top: 4px;">
+                                <div class="som-doc-subtitle" style="margin-top: 4px;">
                                     Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
                                 </div>
                             </div>
@@ -36,9 +37,9 @@
                                 </colgroup>
                                 <thead>
                                     <tr>
-                                        <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Cliente</th>
-                                        <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Detalles del Recibo</th>
-                                        <th style="padding: 6px 8px; text-align: left; font-weight: 800; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.5px; background-color: #f2f2f2; color: #222; border: 1px solid #d8d8d8 !important;">Estado del Documento</th>
+                                        <th class="som-section-title">Cliente</th>
+                                        <th class="som-section-title">Detalles del Recibo</th>
+                                        <th class="som-section-title">Estado del Documento</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -55,33 +56,33 @@
 
                                         <!-- DETALLES DEL RECIBO -->
                                         <td style="vertical-align: top; padding: 0; border: 1px solid #d8d8d8 !important;">
-                                            <div style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #d8d8d8 !important;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Fecha</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600;"><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/></div>
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Fecha</div>
+                                                <div class="som-info-value"><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/></div>
                                             </div>
-                                            <div style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #d8d8d8 !important;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Recibido por</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600; overflow-wrap: anywhere; word-break: break-word;"><span t-field="doc.received_by.name"/></div>
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Recibido por</div>
+                                                <div class="som-info-value"><span t-field="doc.received_by.name"/></div>
                                             </div>
-                                            <div style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #d8d8d8 !important;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Forma de pago</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600;">Efectivo</div>
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Forma de pago</div>
+                                                <div class="som-info-value">Efectivo</div>
                                             </div>
-                                            <div style="display: table; width: 100%; table-layout: fixed;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Divisa</div>
-                                                <div style="display: table-cell; padding: 5px 8px; font-weight: 600;"><span t-field="doc.currency_id.name"/></div>
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Divisa</div>
+                                                <div class="som-info-value"><span t-field="doc.currency_id.name"/></div>
                                             </div>
                                         </td>
 
                                         <!-- ESTADO -->
                                         <td style="vertical-align: top; padding: 0; border: 1px solid #d8d8d8 !important;">
-                                            <div style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #d8d8d8 !important;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Estado</div>
-                                                <div style="display: table-cell; padding: 5px 8px; text-align: right; font-weight: 700;"><span t-esc="state_label"/></div>
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Estado</div>
+                                                <div class="som-info-value" style="text-align: right; font-weight: 700;"><span t-esc="state_label"/></div>
                                             </div>
-                                            <div style="display: table; width: 100%; table-layout: fixed;">
-                                                <div style="display: table-cell; width: 45%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; letter-spacing: 0.3px; border-right: 1px solid #d8d8d8 !important;">Recibo No.</div>
-                                                <div style="display: table-cell; padding: 5px 8px; text-align: right; font-weight: 600;"><span t-field="doc.name"/></div>
+                                            <div class="som-info-row">
+                                                <div class="som-info-label">Recibo No.</div>
+                                                <div class="som-info-value" style="text-align: right;"><span t-field="doc.name"/></div>
                                             </div>
                                         </td>
                                     </tr>
@@ -103,30 +104,28 @@
 
                         <!-- ============ PEDIDOS ASOCIADOS ============ -->
                         <t t-if="doc.sale_order_ids">
-                            <div style="margin-top: 14px; margin-bottom: 5px; width: 100%; page-break-inside: avoid;">
-                                <span style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #222;">Pedidos de venta asociados</span>
-                            </div>
-                            <table class="table table-sm" style="width: 100%; font-size: 9px; border-collapse: collapse; table-layout: fixed;">
+                            <div class="som-section-title som-avoid-break" style="margin-top: 14px;">Pedidos de venta asociados</div>
+                            <table class="som-table">
                                 <thead>
-                                    <tr style="background-color: #2f2f2f; color: #fff;">
-                                        <th style="color: #fff; width: 40%; font-weight: bold;">Pedido</th>
-                                        <th class="text-center" style="color: #fff; width: 30%; font-weight: bold;">Fecha</th>
-                                        <th class="text-end" style="color: #fff; width: 30%; font-weight: bold;">Total</th>
+                                    <tr>
+                                        <th style="width: 40%;">Pedido</th>
+                                        <th class="text-center" style="width: 30%;">Fecha</th>
+                                        <th class="som-num" style="width: 30%;">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <t t-foreach="doc.sale_order_ids" t-as="order">
-                                        <tr style="page-break-inside: avoid;">
-                                            <td class="align-middle" style="overflow-wrap: anywhere; word-break: break-word;"><strong t-field="order.name"/></td>
+                                        <tr>
+                                            <td class="align-middle"><strong t-field="order.name"/></td>
                                             <td class="text-center align-middle"><span t-field="order.date_order" t-options="{'format': 'dd/MM/yyyy'}"/></td>
-                                            <td class="text-end align-middle" style="white-space: nowrap;"><span t-field="order.amount_total" t-options="{'widget': 'monetary', 'display_currency': order.currency_id}"/></td>
+                                            <td class="som-num align-middle"><span t-field="order.amount_total" t-options="{'widget': 'monetary', 'display_currency': order.currency_id}"/></td>
                                         </tr>
                                     </t>
                                 </tbody>
                                 <tfoot>
                                     <tr style="background-color: #f2f2f2; color: #222;">
-                                        <td colspan="2" class="text-end" style="padding: 4px 8px; font-weight: 800; text-transform: uppercase; border: 1px solid #d8d8d8;">Total de pedidos</td>
-                                        <td class="text-end" style="padding: 4px 8px; font-weight: 800; border: 1px solid #d8d8d8; white-space: nowrap;"><span t-field="doc.total_orders_amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                        <td colspan="2" class="text-end som-upper" style="padding: 4px 8px; font-weight: 800; border: 1px solid #d8d8d8;">Total de pedidos</td>
+                                        <td class="text-end som-nowrap" style="padding: 4px 8px; font-weight: 800; border: 1px solid #d8d8d8;"><span t-field="doc.total_orders_amount" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -134,9 +133,7 @@
 
                         <!-- ============ CONCEPTO / NOTAS ============ -->
                         <t t-if="doc.notes">
-                            <div style="margin-top: 14px; margin-bottom: 5px; width: 100%; page-break-inside: avoid;">
-                                <span style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #222;">Concepto / Notas</span>
-                            </div>
+                            <div class="som-section-title som-avoid-break" style="margin-top: 14px;">Concepto / Notas</div>
                             <div style="border: 1px solid #d8d8d8; padding: 8px; background-color: #fafafa; white-space: pre-line; font-size: 9.5px; line-height: 1.35;">
                                 <span t-field="doc.notes"/>
                             </div>
@@ -147,9 +144,9 @@
                             <div style="margin-top: 14px;">
                                 <table style="font-size: 9px; width: 100%; border-collapse: collapse; border: 1px solid #d8d8d8 !important; table-layout: fixed;">
                                     <tr>
-                                        <td style="width: 22%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; background-color: #f2f2f2; border: 1px solid #d8d8d8 !important;">Pago formal vinculado</td>
+                                        <td class="som-upper som-small som-muted" style="width: 22%; padding: 5px 8px; background-color: #f2f2f2; border: 1px solid #d8d8d8 !important;">Pago formal vinculado</td>
                                         <td style="width: 38%; padding: 5px 8px; font-weight: 700; border: 1px solid #d8d8d8 !important;"><span t-field="doc.payment_id.name"/></td>
-                                        <td style="width: 15%; padding: 5px 8px; color: #555; text-transform: uppercase; font-size: 8.5px; background-color: #f2f2f2; border: 1px solid #d8d8d8 !important;">Fecha</td>
+                                        <td class="som-upper som-small som-muted" style="width: 15%; padding: 5px 8px; background-color: #f2f2f2; border: 1px solid #d8d8d8 !important;">Fecha</td>
                                         <td style="width: 25%; padding: 5px 8px; font-weight: 600; border: 1px solid #d8d8d8 !important;"><span t-field="doc.payment_id.date"/></td>
                                     </tr>
                                 </table>
