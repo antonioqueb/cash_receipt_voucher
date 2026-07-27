@@ -20,6 +20,12 @@ class CashDisbursement(models.Model):
     _order = 'date desc, id desc'
     _rec_name = 'name'
 
+    # Folio único por compañía (mismo criterio que los recibos).
+    _name_company_uniq = models.Constraint(
+        'unique(name, company_id)',
+        'Ya existe una salida de caja con ese folio en esta compañía.',
+    )
+
     name = fields.Char(
         string='Folio', required=True, copy=False, readonly=True,
         default=lambda self: _('Nuevo'),

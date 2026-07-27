@@ -4,6 +4,7 @@
         <record id="seq_cash_disbursement" model="ir.sequence">
             <field name="name">Salida de Caja</field>
             <field name="code">cash.disbursement</field>
+            <field name="implementation">no_gap</field>
             <field name="prefix">SAL-%(year)s-</field>
             <field name="padding">5</field>
             <field name="company_id" eval="False"/>
@@ -12,6 +13,7 @@
         <record id="seq_cash_receipt" model="ir.sequence">
             <field name="name">Recibo de Efectivo</field>
             <field name="code">cash.receipt</field>
+            <field name="implementation">no_gap</field>
             <field name="prefix">REC-%(year)s-</field>
             <field name="padding">5</field>
             <field name="company_id" eval="False"/>

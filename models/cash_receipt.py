@@ -24,6 +24,13 @@ class CashReceipt(models.Model):
     _order = 'date desc, id desc'
     _rec_name = 'name'
 
+    # Folio único por compañía: es un control interno de efectivo, un folio
+    # repetido invalida la auditabilidad. (No existía ninguna restricción.)
+    _name_company_uniq = models.Constraint(
+        'unique(name, company_id)',
+        'Ya existe un recibo de efectivo con ese folio en esta compañía.',
+    )
+
     name = fields.Char(
         string='Número de Recibo',
         required=True,
