@@ -1,16 +1,11 @@
 import base64
-from collections import OrderedDict
-from datetime import timedelta, datetime, time
+from datetime import timedelta
 
-from dateutil.relativedelta import relativedelta
 from markupsafe import Markup
 
 from odoo import models, fields, api, _
-from odoo.exceptions import UserError, ValidationError, AccessError
+from odoo.exceptions import UserError
 from odoo.tools import float_compare, float_is_zero
-
-MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
 
 # Nivel 1 (consulta): ve el control interno. Nivel 2 (edición): puede ajustarlo.
 CASH_INTERNAL_VIEW_GROUP = 'cash_receipt_voucher.group_cash_internal_control'
@@ -546,6 +541,40 @@ class CashReceipt(models.Model):
         """Imprimir el recibo"""
         return self.env.ref('cash_receipt_voucher.action_report_cash_receipt').report_action(self)
 
+    # ------------------------------------------------------------------
+    # CAJA MANUAL: el recibo ya no alimenta el saldo solo; se registra a
+    # mano como entrada de caja (prellenada desde aquí, el cajero confirma).
+    # ------------------------------------------------------------------
+    cash_entry_ids = fields.One2many(
+        'cash.entry', 'receipt_id', string='Entradas de Caja',
+    )
+    cash_entry_count = fields.Integer(
+        compute='_compute_cash_entry_count',
+    )
+
+    @api.depends('cash_entry_ids', 'cash_entry_ids.state')
+    def _compute_cash_entry_count(self):
+        for rec in self:
+            rec.cash_entry_count = len(rec.cash_entry_ids.filtered(
+                lambda e: e.state != 'cancelled'))
+
+    def action_register_cash_entry(self):
+        """Abrir la entrada de caja del recibo: la existente si ya se registró,
+        o una nueva prellenada (el usuario revisa y guarda — registro manual)."""
+        self.ensure_one()
+        entry = self.cash_entry_ids.filtered(lambda e: e.state != 'cancelled')[:1]
+        action = {
+            'type': 'ir.actions.act_window',
+            'res_model': 'cash.entry',
+            'view_mode': 'form',
+            'target': 'current',
+        }
+        if entry:
+            action['res_id'] = entry.id
+        else:
+            action['context'] = {'default_receipt_id': self.id}
+        return action
+
     def action_print_internal_control(self):
         """Imprimir el reporte de control interno (Oficial vs Real vs Diferencia).
         Restringido por el botón al grupo de control interno."""
@@ -556,297 +585,6 @@ class CashReceipt(models.Model):
         return self.env.ref(
             'cash_receipt_voucher.action_report_cash_internal_control'
         ).report_action(self)
-
-    # ==================================================================
-    # DASHBOARD DE CONTROL INTERNO DE EFECTIVO
-    # ==================================================================
-    @api.model
-    def _check_internal_access(self):
-        if not self.env.user.has_group(CASH_INTERNAL_VIEW_GROUP):
-            raise AccessError(_(
-                'No tiene permisos para el Control Interno de Efectivo.'))
-
-    @api.model
-    def _resolve_period(self, period, date_from=False, date_to=False):
-        """Devuelve (date_from, date_to) como objetos date según el periodo."""
-        today = fields.Date.context_today(self)
-        if period == 'custom' and date_from and date_to:
-            return fields.Date.to_date(date_from), fields.Date.to_date(date_to)
-        if period == 'today':
-            return today, today
-        if period == 'week':
-            start = today - timedelta(days=today.weekday())
-            return start, start + timedelta(days=6)
-        if period == 'quarter':
-            q_start_month = ((today.month - 1) // 3) * 3 + 1
-            start = today.replace(month=q_start_month, day=1)
-            return start, start + relativedelta(months=3, days=-1)
-        if period == 'year':
-            return today.replace(month=1, day=1), today.replace(month=12, day=31)
-        # 'month' (por defecto)
-        start = today.replace(day=1)
-        return start, start + relativedelta(months=1, days=-1)
-
-    @api.model
-    def _period_domain(self, df, dt):
-        domain = [('state', '!=', 'cancelled')]
-        if df:
-            domain.append(('date', '>=', fields.Datetime.to_string(
-                datetime.combine(df, time.min))))
-        if dt:
-            domain.append(('date', '<=', fields.Datetime.to_string(
-                datetime.combine(dt, time.max))))
-        return domain
-
-    @api.model
-    def _resolve_currency_mode(self, currency_mode):
-        """Normaliza el modo de divisa → (modo, dominio_extra, divisa_display).
-        'all_mxn' = todo convertido a MXN; 'mxn' = solo MXN; 'usd' = solo USD."""
-        usd = self.env.ref('base.USD', raise_if_not_found=False)
-        mxn = self.env.ref('base.MXN', raise_if_not_found=False)
-        company_cur = self.env.company.currency_id
-        if currency_mode == 'usd' and usd:
-            return 'usd', [('currency_id', '=', usd.id)], usd
-        if currency_mode == 'mxn' and mxn:
-            return 'mxn', [('currency_id', '=', mxn.id)], mxn
-        return 'all_mxn', [], (mxn or company_cur)
-
-    @api.model
-    def get_dashboard_data(self, period='month', date_from=False, date_to=False, currency_mode='all_mxn'):
-        """Recopila KPIs y series para el dashboard de efectivo, por divisa."""
-        self._check_internal_access()
-        df, dt = self._resolve_period(period, date_from, date_to)
-        currency_mode, cur_domain, disp_cur = self._resolve_currency_mode(currency_mode)
-        company_cur = self.env.company.currency_id
-        receipts = self.search(self._period_domain(df, dt) + cur_domain, order='date asc')
-        consolidated = currency_mode == 'all_mxn'
-
-        # Salidas de caja chica del periodo (mismo criterio de divisa). Restan
-        # el saldo en caja: sin esto el dashboard se infla y nunca cuadra.
-        disbursements = self.env['cash.disbursement'].search(
-            self._period_domain(df, dt) + cur_domain)
-
-        # Consolidado → equivalente MXN (DOF de la fecha). Por divisa → monto
-        # original. Efectivo en caja = cobrado − depositado a cuenta.
-        def _val(r):
-            return r.amount_mxn if consolidated else r.amount
-        def _valint(r):
-            return r.amount_internal_mxn if consolidated else r.amount_internal
-        def _en_caja(r):
-            return _val(r) - _valint(r)
-
-        def _val_out(o):
-            return o.amount_mxn if consolidated else o.amount
-
-        total_official = sum(_val(r) for r in receipts)
-        total_real = sum(_valint(r) for r in receipts)
-        total_diff = total_official - total_real
-        total_out = sum(_val_out(o) for o in disbursements)
-        cash_on_hand = total_diff - total_out
-        with_diff = receipts.filtered(lambda r: abs(_en_caja(r)) > 0.001)
-        shortage = sum(_en_caja(r) for r in receipts if _en_caja(r) > 0)
-        overage = sum(-_en_caja(r) for r in receipts if _en_caja(r) < 0)
-        count = len(receipts)
-
-        # --- Serie temporal (por día si el rango es corto, si no por mes) ---
-        span_days = (dt - df).days if (df and dt) else 9999
-        group = 'month' if span_days > 70 else 'day'
-        keys = []  # (key, label)
-        if df and dt:
-            if group == 'day':
-                cur = df
-                while cur <= dt:
-                    keys.append((cur.strftime('%Y-%m-%d'), cur.strftime('%d/%m')))
-                    cur += timedelta(days=1)
-            else:
-                cur = df.replace(day=1)
-                while cur <= dt:
-                    keys.append((cur.strftime('%Y-%m'),
-                                 '%s %s' % (MESES_ES[cur.month - 1], str(cur.year)[2:])))
-                    cur += relativedelta(months=1)
-        buckets = OrderedDict((k, {'official': 0.0, 'real': 0.0, 'diff': 0.0}) for k, _l in keys)
-        labels = [l for _k, l in keys]
-        for r in receipts:
-            if not r.date:
-                continue
-            local = fields.Datetime.context_timestamp(self, r.date)
-            k = local.strftime('%Y-%m') if group == 'month' else local.strftime('%Y-%m-%d')
-            b = buckets.get(k)
-            if b is None:
-                continue
-            b['official'] += _val(r)
-            b['real'] += _valint(r)
-            b['diff'] += _en_caja(r)
-
-        for o in disbursements:
-            if not o.date:
-                continue
-            local = fields.Datetime.context_timestamp(self, o.date)
-            k = local.strftime('%Y-%m') if group == 'month' else local.strftime('%Y-%m-%d')
-            b = buckets.get(k)
-            if b is not None:
-                b['diff'] -= _val_out(o)
-
-        series = list(buckets.values())
-
-        # --- Ranking por cliente (top 8 por efectivo real) ---
-        by_partner = {}
-        for r in receipts:
-            p = r.partner_id
-            if not p:
-                continue
-            entry = by_partner.setdefault(p.id, {'name': p.display_name, 'real': 0.0, 'diff': 0.0})
-            entry['real'] += _valint(r)
-            entry['diff'] += _en_caja(r)
-        top_partners = sorted(by_partner.values(), key=lambda e: e['real'], reverse=True)[:8]
-        # Retención (efectivo en caja) por cliente
-        retention_partners = sorted(
-            [e for e in by_partner.values() if e['diff'] > 0],
-            key=lambda e: e['diff'], reverse=True)[:6]
-
-        # --- Recibos recientes (máx 12) ---
-        recent = []
-        for r in receipts.sorted(key=lambda x: x.date or datetime.min, reverse=True)[:12]:
-            recent.append({
-                'id': r.id,
-                'name': r.name,
-                'date': fields.Datetime.context_timestamp(self, r.date).strftime('%d/%m/%Y') if r.date else '',
-                'partner': r.partner_id.display_name or '',
-                'orders': ', '.join(r.sale_order_ids.mapped('name')),
-                'official': _val(r),
-                'real': _valint(r),
-                'diff': _en_caja(r),
-                'cur': r.currency_id.name or '',
-                'state': r.state,
-            })
-
-        # --- Salidas recientes (máx 8) ---
-        recent_out = []
-        for o in disbursements.sorted(key=lambda x: x.date or datetime.min, reverse=True)[:8]:
-            recent_out.append({
-                'id': o.id,
-                'name': o.name,
-                'date': fields.Datetime.context_timestamp(self, o.date).strftime('%d/%m/%Y') if o.date else '',
-                'delivered_to': o.delivered_to or '',
-                'concept': (o.concept or '')[:60],
-                'user': o.user_id.name or '',
-                'amount': _val_out(o),
-                'cur': o.currency_id.name or '',
-            })
-
-        # --- Indicadores de dirección ---
-        deposit_rate = (total_real / total_official * 100.0) if total_official else 0.0
-        retention_rate = (total_diff / total_official * 100.0) if total_official else 0.0
-        avg_retention = (total_diff / count) if count else 0.0
-        avg_ticket = (total_official / count) if count else 0.0
-        pending_company = sum(receipts.mapped('partner_id').mapped('credit'))
-        if disp_cur and company_cur and disp_cur != company_cur:
-            pending_total = company_cur._convert(
-                pending_company, disp_cur, self.env.company, fields.Date.context_today(self))
-        else:
-            pending_total = pending_company
-        max_r = max(receipts, key=lambda r: _val(r), default=None)
-        max_receipt = {
-            'name': max_r.name, 'value': _val(max_r),
-            'partner': max_r.partner_id.display_name,
-        } if max_r else {'name': '', 'value': 0.0, 'partner': ''}
-        states = {'draft': 0, 'delivered': 0, 'paid': 0}
-        for r in receipts:
-            if r.state in states:
-                states[r.state] += 1
-
-        # Mezcla de divisas en el periodo (sin filtrar por modo) para el selector.
-        all_period = self.search(self._period_domain(df, dt))
-        usd_count = len(all_period.filtered('is_usd'))
-        mix = {'usd': usd_count, 'mxn': len(all_period) - usd_count}
-
-        # Comparativo contra el periodo inmediato anterior (mismo modo de divisa)
-        prev = {'official': 0.0, 'real': 0.0, 'diff': 0.0}
-        if df and dt:
-            length = (dt - df).days + 1
-            prev_dt = df - timedelta(days=1)
-            prev_df = prev_dt - timedelta(days=length - 1)
-            prev_receipts = self.search(self._period_domain(prev_df, prev_dt) + cur_domain)
-            prev['official'] = sum(_val(r) for r in prev_receipts)
-            prev['real'] = sum(_valint(r) for r in prev_receipts)
-            prev['diff'] = prev['official'] - prev['real']
-
-        def _delta(cur, pre):
-            if pre:
-                return (cur - pre) / pre * 100.0
-            return 100.0 if cur else 0.0
-
-        return {
-            'currency': {'symbol': disp_cur.symbol or '$', 'position': disp_cur.position or 'before', 'label': disp_cur.name or ''},
-            'currency_mode': currency_mode,
-            'consolidated': consolidated,
-            'mix': mix,
-            'period': period,
-            'date_from': df and fields.Date.to_string(df) or '',
-            'date_to': dt and fields.Date.to_string(dt) or '',
-            'kpis': {
-                'total_official': total_official,
-                'total_real': total_real,
-                'total_diff': total_diff,
-                'diff_pct': retention_rate,
-                'deposit_rate': deposit_rate,
-                'retention_rate': retention_rate,
-                'avg_retention': avg_retention,
-                'avg_ticket': avg_ticket,
-                'count': count,
-                'partners_count': len(receipts.mapped('partner_id')),
-                'with_diff_count': len(with_diff),
-                'shortage': shortage,
-                'overage': overage,
-                'pending_total': pending_total,
-                'total_out': total_out,
-                'out_count': len(disbursements),
-                'cash_on_hand': cash_on_hand,
-            },
-            'recent_out': recent_out,
-            'max_receipt': max_receipt,
-            'states': states,
-            'prev': prev,
-            'deltas': {
-                'official': _delta(total_official, prev['official']),
-                'real': _delta(total_real, prev['real']),
-                'diff': _delta(total_diff, prev['diff']),
-            },
-            'series': series,
-            'series_labels': labels,
-            'series_group': group,
-            'top_partners': top_partners,
-            'retention_partners': retention_partners,
-            'recent': recent,
-        }
-
-    @api.model
-    def action_print_period_report(self, period='month', date_from=False, date_to=False, currency_mode='all_mxn'):
-        """Devuelve la acción de reporte PDF de los recibos del periodo y divisa."""
-        self._check_internal_access()
-        df, dt = self._resolve_period(period, date_from, date_to)
-        currency_mode, cur_domain, disp_cur = self._resolve_currency_mode(currency_mode)
-        receipts = self.search(self._period_domain(df, dt) + cur_domain, order='date asc')
-        if not receipts:
-            raise UserError(_('No hay recibos en el periodo seleccionado para imprimir.'))
-        return self.env.ref(
-            'cash_receipt_voucher.action_report_cash_internal_control'
-        ).report_action(receipts.ids, data={
-            'currency_mode': currency_mode,
-            'docids': receipts.ids,
-        })
-
-    @api.model
-    def action_open_cash_receipt(self, receipt_id):
-        """Abrir un recibo desde el dashboard."""
-        self._check_internal_access()
-        return {
-            'type': 'ir.actions.act_window',
-            'res_model': 'cash.receipt',
-            'res_id': int(receipt_id),
-            'view_mode': 'form',
-            'target': 'current',
-        }
 
     @api.onchange('sale_order_ids')
     def _onchange_sale_order_ids(self):

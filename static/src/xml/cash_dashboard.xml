@@ -12,7 +12,7 @@
                     </div>
                     <div>
                         <h1>Control de Efectivo</h1>
-                        <p>Tablero interno · efectivo real vs oficial</p>
+                        <p>Tablero interno · caja manual (entradas − salidas)</p>
                     </div>
                 </div>
                 <div class="o_cash_actions">
@@ -50,7 +50,7 @@
                 </div>
                 <span class="o_cash_curbadge">Mostrando en <b t-esc="curLabel"/></span>
                 <span class="o_cash_curhint" t-if="mix.usd and mix.mxn">
-                    <i class="fa fa-info-circle"/> Este periodo tiene recibos en USD y MXN (<t t-esc="mix.usd"/> USD · <t t-esc="mix.mxn"/> MXN)
+                    <i class="fa fa-info-circle"/> Este periodo tiene entradas en USD y MXN (<t t-esc="mix.usd"/> USD · <t t-esc="mix.mxn"/> MXN)
                 </span>
             </div>
 
@@ -76,7 +76,7 @@
                 <div class="o_cash_kpis">
                     <div class="o_cash_card o_cash_grad_blue">
                         <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Cobrado (oficial)</span>
+                            <span class="o_cash_card_label">Recibido (entradas)</span>
                             <i class="fa fa-university"/>
                         </div>
                         <div class="o_cash_card_value" t-esc="money(kpis.total_official)"/>
@@ -211,11 +211,11 @@
                                 <span class="o_cash_mini_val" t-esc="money(kpis.avg_ticket)"/>
                             </div>
                             <div class="o_cash_mini_item">
-                                <span class="o_cash_mini_label">Retención prom./recibo</span>
+                                <span class="o_cash_mini_label">Retención prom./entrada</span>
                                 <span class="o_cash_mini_val o_cash_orange_txt" t-esc="money(kpis.avg_retention)"/>
                             </div>
                             <div class="o_cash_mini_item">
-                                <span class="o_cash_mini_label">Recibo más alto</span>
+                                <span class="o_cash_mini_label">Entrada más alta</span>
                                 <span class="o_cash_mini_val" t-esc="money(max.value)"/>
                                 <span class="o_cash_mini_hint" t-esc="max.name"/>
                             </div>
@@ -229,11 +229,10 @@
                                 <span class="o_cash_mini_val" t-att-class="deltaClass(deltas.real)" t-esc="deltaText(deltas.real)"/>
                             </div>
                             <div class="o_cash_mini_item">
-                                <span class="o_cash_mini_label">Estados (pag/ent/bor)</span>
+                                <span class="o_cash_mini_label">Origen (recibo/manual)</span>
                                 <span class="o_cash_mini_states">
-                                    <span class="o_cash_pill o_pill_paid" t-esc="int(states.paid)"/>
-                                    <span class="o_cash_pill o_pill_deliv" t-esc="int(states.delivered)"/>
-                                    <span class="o_cash_pill o_pill_draft" t-esc="int(states.draft)"/>
+                                    <span class="o_cash_pill o_pill_paid" t-esc="int(states.linked)"/>
+                                    <span class="o_cash_pill o_pill_draft" t-esc="int(states.manual)"/>
                                 </span>
                             </div>
                         </div>
@@ -258,17 +257,18 @@
 
                 <!-- Tabla de recientes -->
                 <div class="o_cash_panel">
-                    <div class="o_cash_panel_head"><h3>Recibos recientes</h3></div>
+                    <div class="o_cash_panel_head"><h3>Entradas de caja recientes</h3></div>
                     <div class="o_cash_table_wrap">
                         <table class="o_cash_table">
                             <thead>
                                 <tr>
-                                    <th>Recibo</th>
+                                    <th>Folio</th>
                                     <th>Pedido</th>
+                                    <th>Recibo</th>
                                     <th>Cliente</th>
                                     <th>Fecha</th>
                                     <th>Div</th>
-                                    <th class="text-end">Cobrado</th>
+                                    <th class="text-end">Recibido</th>
                                     <th class="text-end">A cuenta</th>
                                     <th class="text-end">En caja</th>
                                     <th/>
@@ -279,6 +279,7 @@
                                     t-on-click="() => this.openReceipt(r.id)">
                                     <td><b t-esc="r.name"/></td>
                                     <td t-esc="r.orders"/>
+                                    <td t-esc="r.receipt"/>
                                     <td t-esc="r.partner"/>
                                     <td t-esc="r.date"/>
                                     <td><span class="o_cash_curtag" t-esc="r.cur"/></td>
@@ -290,7 +291,7 @@
                                     <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
                                 </tr>
                                 <tr t-if="!recent.length">
-                                    <td colspan="9" class="o_cash_empty">Sin recibos en el periodo.</td>
+                                    <td colspan="10" class="o_cash_empty">Sin entradas de caja en el periodo.</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -307,6 +308,7 @@
                                     <th>Folio</th>
                                     <th>Fecha</th>
                                     <th>Entregado a</th>
+                                    <th>OC</th>
                                     <th>Concepto</th>
                                     <th>Responsable</th>
                                     <th>Div</th>
@@ -320,6 +322,7 @@
                                     <td><b t-esc="o.name"/></td>
                                     <td t-esc="o.date"/>
                                     <td t-esc="o.delivered_to"/>
+                                    <td t-esc="o.po"/>
                                     <td t-esc="o.concept"/>
                                     <td t-esc="o.user"/>
                                     <td><span class="o_cash_curtag" t-esc="o.cur"/></td>
@@ -327,7 +330,7 @@
                                     <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
                                 </tr>
                                 <tr t-if="!recentOut.length">
-                                    <td colspan="8" class="o_cash_empty">Sin salidas de caja en el periodo.</td>
+                                    <td colspan="9" class="o_cash_empty">Sin salidas de caja en el periodo.</td>
                                 </tr>
                             </tbody>
                         </table>

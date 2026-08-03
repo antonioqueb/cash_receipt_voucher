@@ -45,7 +45,7 @@ export class CashDashboard extends Component {
         this.state.loading = true;
         try {
             const data = await this.orm.call(
-                "cash.receipt",
+                "cash.entry",
                 "get_dashboard_data",
                 [],
                 {
@@ -95,7 +95,7 @@ export class CashDashboard extends Component {
         this.state.printing = true;
         try {
             const act = await this.orm.call(
-                "cash.receipt",
+                "cash.entry",
                 "action_print_period_report",
                 [],
                 {
@@ -107,7 +107,7 @@ export class CashDashboard extends Component {
             );
             await this.action.doAction(act);
         } catch (e) {
-            this.notification.add("No hay recibos para imprimir en este periodo.", {
+            this.notification.add("No hay entradas de caja para imprimir en este periodo.", {
                 type: "warning",
             });
         } finally {
@@ -118,7 +118,7 @@ export class CashDashboard extends Component {
     async openReceipt(id) {
         await this.action.doAction({
             type: "ir.actions.act_window",
-            res_model: "cash.receipt",
+            res_model: "cash.entry",
             res_id: id,
             views: [[false, "form"]],
             target: "current",

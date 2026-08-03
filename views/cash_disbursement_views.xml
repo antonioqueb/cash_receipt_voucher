@@ -9,6 +9,7 @@
                 <field name="name"/>
                 <field name="date"/>
                 <field name="delivered_to"/>
+                <field name="purchase_order_id" optional="show"/>
                 <field name="concept"/>
                 <field name="user_id" widget="many2one_avatar_user"/>
                 <field name="amount" sum="Total"/>
@@ -53,6 +54,7 @@
                         <group>
                             <field name="delivered_to"/>
                             <field name="partner_id"/>
+                            <field name="purchase_order_id" options="{'no_create': True}"/>
                             <field name="user_id" widget="many2one_avatar_user"/>
                             <field name="company_id" invisible="1"/>
                         </group>

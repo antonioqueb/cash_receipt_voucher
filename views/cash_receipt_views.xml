@@ -23,6 +23,21 @@
                             type="object"
                             class="btn-secondary"
                             groups="cash_receipt_voucher.group_cash_internal_control"/>
+                    <!-- Caja manual: el recibo NO suma solo al saldo; se
+                         registra a mano como entrada (prellenada desde aquí). -->
+                    <button name="action_register_cash_entry"
+                            string="Registrar en Caja"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="cash_entry_count &gt; 0 or state == 'cancelled'"
+                            groups="cash_receipt_voucher.group_cash_internal_control_edit"/>
+                    <button name="action_register_cash_entry"
+                            string="Ver Entrada de Caja"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="cash_entry_count == 0"
+                            groups="cash_receipt_voucher.group_cash_internal_control"/>
+                    <field name="cash_entry_count" invisible="1"/>
                     <button name="action_register_payment"
                             string="Registrar Pago Formal"
                             type="object"

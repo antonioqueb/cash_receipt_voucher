@@ -21,8 +21,16 @@
               sequence="10"
               groups="cash_receipt_voucher.group_cash_internal_control"/>
 
+    <!-- La caja es manual: las entradas son la fuente del saldo. -->
+    <menuitem id="menu_efectivo_entradas"
+              name="Entradas de Caja"
+              parent="menu_efectivo_root"
+              action="action_cash_entry"
+              sequence="15"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+
     <menuitem id="menu_efectivo_control"
-              name="Control Interno"
+              name="Control de Recibos"
               parent="menu_efectivo_root"
               action="action_cash_internal_control"
               sequence="20"

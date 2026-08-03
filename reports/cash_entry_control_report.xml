@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Reporte PDF: Control de Caja (entradas manuales del periodo).
+         SIN binding al menú Imprimir: se genera desde el dashboard. -->
+    <record id="action_report_cash_entry_control" model="ir.actions.report">
+        <field name="name">Control de Caja (Manual)</field>
+        <field name="model">cash.entry</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cash_receipt_voucher.report_cash_entry_control</field>
+        <field name="report_file">cash_receipt_voucher.report_cash_entry_control</field>
+    </record>
+
+    <template id="report_cash_entry_control">
+        <t t-call="web.html_container">
+            <t t-call="web.internal_layout">
+                <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000;">
+                    <t t-call="stock_lot_dimensions.som_report_style"/>
+
+                    <t t-set="mode" t-value="currency_mode or 'all_mxn'"/>
+                    <t t-set="consolidated" t-value="mode == 'all_mxn'"/>
+                    <t t-set="mxn_cur" t-value="env.ref('base.MXN', raise_if_not_found=False) or env.company.currency_id"/>
+                    <t t-set="mode_label" t-value="'Consolidado en MXN (tipo de cambio DOF de cada fecha)' if consolidated else ('Solo entradas en USD' if mode == 'usd' else 'Solo entradas en MXN')"/>
+
+                    <div class="row border-bottom pb-2 mb-3" style="border-color:#000 !important;">
+                        <div class="col-8">
+                            <h4 class="som-doc-title mb-0">
+                                Control de Caja — Registro Manual
+                            </h4>
+                            <div class="som-small som-muted">Documento interno — no entregar al cliente</div>
+                            <div style="font-size:9.5px; font-weight:700; margin-top:2px;">Montos en: <span t-esc="mode_label"/></div>
+                        </div>
+                        <div class="col-4 text-end som-doc-subtitle">
+                            Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                        </div>
+                    </div>
+
+                    <t t-set="total_official" t-value="0.0"/>
+                    <t t-set="total_real" t-value="0.0"/>
+                    <t t-set="total_diff" t-value="0.0"/>
+                    <t t-set="rep_currency" t-value="mxn_cur if consolidated else (docs[:1].currency_id or env.company.currency_id)"/>
+
+                    <table class="som-table">
+                        <thead>
+                            <tr>
+                                <th style="width:10%;">Folio</th>
+                                <th style="width:11%;">Pedido</th>
+                                <th style="width:10%;">Recibo</th>
+                                <th style="width:18%;">Cliente / Recibido de</th>
+                                <th style="width:9%;">Fecha</th>
+                                <th class="som-num" style="width:14%;">Recibido</th>
+                                <th class="som-num" style="width:14%;">A cuenta</th>
+                                <th class="som-num" style="width:14%;">En caja</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="docs" t-as="doc">
+                                <t t-set="r_cur" t-value="mxn_cur if consolidated else doc.currency_id"/>
+                                <t t-set="r_official" t-value="doc.amount_mxn if consolidated else doc.amount"/>
+                                <t t-set="r_account" t-value="doc.amount_internal_mxn if consolidated else doc.amount_internal"/>
+                                <t t-set="r_caja" t-value="r_official - r_account"/>
+                                <t t-set="total_official" t-value="total_official + r_official"/>
+                                <t t-set="total_real" t-value="total_real + r_account"/>
+                                <t t-set="total_diff" t-value="total_diff + r_caja"/>
+                                <tr>
+                                    <td><strong t-field="doc.name"/></td>
+                                    <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
+                                    <td><span t-esc="doc.receipt_id.name or ''"/></td>
+                                    <td><span t-esc="doc.partner_id.name or doc.received_from or ''"/></td>
+                                    <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                    <td class="som-num">
+                                        <span t-esc="r_official" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
+                                    </td>
+                                    <td class="som-num">
+                                        <span t-esc="r_account" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
+                                    </td>
+                                    <td class="som-num"
+                                        t-attf-style="font-weight:700; color:#{'d97706' if r_caja &gt; 0 else '2563eb' if r_caja &lt; 0 else '000'};">
+                                        <span t-esc="r_caja" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                        <tfoot>
+                            <tr style="background-color:#f2f2f2; font-weight:800;">
+                                <td colspan="5" class="text-end som-upper" style="border:1px solid #d8d8d8; padding:4px 6px;">Totales</td>
+                                <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px;">
+                                    <span t-esc="total_official" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                                <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px;">
+                                    <span t-esc="total_real" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                                <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px;">
+                                    <span t-esc="total_diff" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- ══════ SALIDAS DE CAJA del rango de fechas de las entradas ══════ -->
+                    <t t-set="d_list" t-value="[d for d in docs.mapped('date') if d]"/>
+                    <t t-set="salida_domain" t-value="[('state', '!=', 'cancelled')]"/>
+                    <t t-if="d_list">
+                        <t t-set="salida_domain" t-value="salida_domain + [('date', '&gt;=', min(d_list).replace(hour=0, minute=0, second=0)), ('date', '&lt;=', max(d_list).replace(hour=23, minute=59, second=59))]"/>
+                    </t>
+                    <t t-if="not consolidated and docs">
+                        <t t-set="salida_domain" t-value="salida_domain + [('currency_id', '=', docs[:1].currency_id.id)]"/>
+                    </t>
+                    <t t-set="salidas" t-value="docs.env['cash.disbursement'].sudo().search(salida_domain, order='date asc')"/>
+                    <t t-set="total_out" t-value="0.0"/>
+
+                    <t t-if="salidas">
+                        <div class="som-section-title" style="margin-top:16px;">
+                            Salidas de Caja
+                            <span style="font-weight:400; font-size:9px; color:#666; text-transform:none;">(mismo rango de fechas)</span>
+                        </div>
+                        <table class="som-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:10%;">Folio</th>
+                                    <th style="width:9%;">Fecha</th>
+                                    <th style="width:16%;">Entregado a</th>
+                                    <th style="width:11%;">OC</th>
+                                    <th style="width:25%;">Concepto</th>
+                                    <th style="width:14%;">Responsable</th>
+                                    <th class="som-num" style="width:15%;">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="salidas" t-as="sal">
+                                    <t t-set="s_cur" t-value="mxn_cur if consolidated else sal.currency_id"/>
+                                    <t t-set="s_amount" t-value="sal.amount_mxn if consolidated else sal.amount"/>
+                                    <t t-set="total_out" t-value="total_out + s_amount"/>
+                                    <tr>
+                                        <td><strong t-field="sal.name"/></td>
+                                        <td><span t-field="sal.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                        <td><span t-field="sal.delivered_to"/></td>
+                                        <td><span t-esc="sal.purchase_order_id.name or ''"/></td>
+                                        <td><span t-esc="(sal.concept or '')[:60]"/></td>
+                                        <td><span t-field="sal.user_id.name"/></td>
+                                        <td class="som-num" style="color:#b45309; font-weight:700;">
+                                            − <span t-esc="s_amount" t-options="{'widget': 'monetary', 'display_currency': s_cur}"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                            <tfoot>
+                                <tr style="background-color:#f2f2f2; font-weight:800;">
+                                    <td colspan="6" class="text-end som-upper" style="border:1px solid #d8d8d8; padding:4px 6px;">Total salidas</td>
+                                    <td class="som-num" style="border:1px solid #d8d8d8; padding:4px 6px; color:#b45309;">
+                                        − <span t-esc="total_out" t-options="{'widget': 'monetary', 'display_currency': rep_currency}"/>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </t>
+
+                    <!-- ══════ SALDO NETO EN CAJA ══════ -->
+                    <div class="text-end" style="margin-top:10px; padding:8px 12px; background-color:#2f2f2f; color:#fff; font-size:11px; font-weight:800;">
+                        SALDO NETO EN CAJA (entradas retenidas − salidas):
+                        <span t-esc="total_diff - total_out" t-options="{'widget': 'monetary', 'display_currency': rep_currency}" style="margin-left:8px;"/>
+                    </div>
+
+                    <div style="margin-top:18px; border:1px solid #ccc; padding:8px; background-color:#fafafa; font-size:9px; color:#555;">
+                        <strong style="color:#333;">CONFIDENCIAL.</strong>
+                        Libro de caja MANUAL e independiente: solo suma lo capturado como
+                        entrada. <b>Recibido</b> = efectivo que entró.
+                        <b>A cuenta</b> = lo depositado/registrado.
+                        <b>En caja</b> = efectivo retenido = Recibido − A cuenta.
+                    </div>
+
+                </div>
+            </t>
+        </t>
+    </template>
+
+</odoo>

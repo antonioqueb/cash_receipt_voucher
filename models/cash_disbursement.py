@@ -50,6 +50,11 @@ class CashDisbursement(models.Model):
         'res.partner', string='Contacto (opcional)',
         help='Contacto relacionado, si aplica.',
     )
+    purchase_order_id = fields.Many2one(
+        'purchase.order', string='Orden de Compra',
+        tracking=True,
+        help='Orden de compra que motiva la salida (búscala por folio). Opcional.',
+    )
     concept = fields.Text(
         string='Concepto / Motivo interno', required=True,
     )
