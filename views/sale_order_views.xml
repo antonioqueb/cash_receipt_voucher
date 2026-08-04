@@ -6,7 +6,16 @@
         <field name="name">sale.order.form.cash.receipt</field>
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="sale.view_order_form"/>
+        <!-- Prioridad alta: aplica DESPUÉS de la vista de sale_payment_proof
+             para poder ocultar su pestaña (unificada aquí en Pagos Recibidos). -->
+        <field name="priority">300</field>
         <field name="arch" type="xml">
+
+            <!-- La pestaña original de Comprobantes de Pago queda oculta:
+                 su contenido vive ahora en la pestaña unificada. -->
+            <xpath expr="//page[@name='payment_proofs']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
 
             <!-- Botón smart button para ver recibos -->
             <xpath expr="//div[@name='button_box']" position="inside">
@@ -22,7 +31,7 @@
 
             <!-- Página dentro del notebook para recibos de efectivo -->
             <xpath expr="//notebook" position="inside">
-                <page string="Recibos de Efectivo" name="cash_receipts">
+                <page string="Recibos de Efectivo" name="cash_receipts" invisible="1">
                     <div class="row mb-3">
                         <div class="col-auto">
                             <button name="action_open_cash_receipt_wizard"
@@ -58,6 +67,102 @@
                                    decoration-danger="state == 'cancelled'"/>
                             <field name="payment_id"/>
                             <field name="received_by"/>
+                        </list>
+                    </field>
+                </page>
+
+                <!-- ============================================================
+                     PESTAÑA UNIFICADA: PAGOS RECIBIDOS
+                     Recibos de efectivo + comprobantes de pago en un solo
+                     lugar, con Aplicar Pago (el wizard propone el total exacto
+                     de ambos, convertido al TC Banorte entre divisas).
+                     Las pestañas originales quedan ocultas (la de comprobantes
+                     se oculta abajo por xpath).
+                     ============================================================ -->
+                <page string="Pagos Recibidos" name="som_payments_unified">
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-auto">
+                            <button name="action_open_cash_receipt_wizard"
+                                    string="Registrar Recibo de Efectivo"
+                                    type="object"
+                                    class="btn-secondary"
+                                    icon="fa-money"
+                                    invisible="state not in ('sale', 'done')"/>
+                        </div>
+                        <div class="col-auto">
+                            <button name="action_open_payment_proof_wizard"
+                                    string="Subir Comprobante de Pago"
+                                    type="object"
+                                    class="btn-secondary"
+                                    icon="fa-file-text-o"/>
+                        </div>
+                        <div class="col-auto">
+                            <button name="action_som_apply_payments"
+                                    string="Aplicar Pago en Factura"
+                                    type="object"
+                                    class="btn-primary"
+                                    icon="fa-check"
+                                    invisible="state not in ('sale', 'done')"/>
+                        </div>
+                        <div class="col-auto" invisible="cash_received_amount == 0">
+                            <div class="alert alert-info mb-0 py-1 px-3" role="status">
+                                <strong>Efectivo recibido:</strong>
+                                <field name="cash_received_amount" widget="monetary"/>
+                            </div>
+                        </div>
+                        <div class="col-auto" invisible="payment_proof_total == 0">
+                            <div class="alert alert-info mb-0 py-1 px-3" role="status">
+                                <strong>Comprobantes:</strong>
+                                <field name="payment_proof_total" widget="monetary"/>
+                            </div>
+                        </div>
+                        <div class="col-auto" invisible="not cash_receipt_pending and payment_proof_pending_count == 0">
+                            <div class="alert alert-warning mb-0 py-1 px-3" role="alert">
+                                <i class="fa fa-exclamation-triangle"/> Pagos pendientes de aplicar
+                                <field name="payment_proof_pending_count" invisible="1"/>
+                                <field name="cash_receipt_pending" invisible="1"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="mt-2 text-uppercase text-muted">Recibos de Efectivo</h6>
+                    <field name="cash_receipt_ids" readonly="1" nolabel="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="date"/>
+                            <field name="amount" sum="Total"/>
+                            <field name="currency_id" string="Divisa"/>
+                            <field name="state"
+                                   widget="badge"
+                                   decoration-info="state == 'draft'"
+                                   decoration-warning="state == 'delivered'"
+                                   decoration-success="state == 'paid'"
+                                   decoration-danger="state == 'cancelled'"/>
+                            <field name="payment_id"/>
+                            <field name="received_by"/>
+                        </list>
+                    </field>
+
+                    <h6 class="mt-3 text-uppercase text-muted">Comprobantes de Pago</h6>
+                    <field name="payment_proof_ids" readonly="1" nolabel="1"
+                           context="{'default_sale_order_id': id}">
+                        <list decoration-success="state == 'applied'"
+                              decoration-danger="state == 'rejected'"
+                              decoration-warning="state == 'pending'">
+                            <field name="upload_date"/>
+                            <field name="name"/>
+                            <field name="amount" widget="monetary" sum="Total"/>
+                            <field name="currency_id" string="Divisa"/>
+                            <field name="payment_date"/>
+                            <field name="payment_method"/>
+                            <field name="reference"/>
+                            <field name="state"
+                                   widget="badge"
+                                   decoration-warning="state == 'pending'"
+                                   decoration-success="state == 'applied'"
+                                   decoration-danger="state == 'rejected'"/>
+                            <button name="action_preview" type="object" icon="fa-eye" title="Ver comprobante"/>
+                            <button name="action_download" type="object" icon="fa-download" title="Descargar"/>
                         </list>
                     </field>
                 </page>

@@ -1,8 +1,29 @@
 from odoo import models, fields, api, _
+from odoo.exceptions import UserError
 
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+
+    def action_som_apply_payments(self):
+        """Aplicar pago desde la pestaña unificada: abre el wizard estándar
+        de pago sobre las facturas publicadas pendientes de la orden. El
+        wizard propone el monto EXACTO de los recibos y comprobantes
+        pendientes (convertidos al TC Banorte si la divisa difiere)."""
+        self.ensure_one()
+        invoices = self.invoice_ids.filtered(
+            lambda m: m.state == 'posted'
+            and m.payment_state in ('not_paid', 'partial')
+        )
+        if not invoices:
+            raise UserError(_(
+                'No hay facturas publicadas pendientes de pago en esta orden.\n\n'
+                'Para aplicar el pago:\n'
+                '1. Crea la factura desde la orden\n'
+                '2. Publícala (Confirmar)\n'
+                '3. Regresa aquí y vuelve a intentar'
+            ))
+        return invoices.action_register_payment()
 
     cash_receipt_ids = fields.Many2many(
         'cash.receipt',
