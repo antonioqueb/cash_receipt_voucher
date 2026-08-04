@@ -90,6 +90,14 @@ class CashReceipt(models.Model):
     signature = fields.Binary(string='Firma / Sello')
     signature_name = fields.Char(string='Nombre del Firmante')
 
+    # Comprobante adjunto (ficha de depósito, transferencia, foto del pago…)
+    voucher_file = fields.Binary(
+        string='Comprobante Adjunto', attachment=True, copy=False,
+        help='Documento que respalda el pago: ficha de depósito, comprobante '
+             'de transferencia, foto del efectivo recibido, etc.',
+    )
+    voucher_filename = fields.Char(string='Nombre del comprobante', copy=False)
+
     # ------------------------------------------------------------------
     # CONTROL INTERNO DE EFECTIVO (doble control)
     # ------------------------------------------------------------------
