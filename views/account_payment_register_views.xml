@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Wizard Registrar Pago: desglose de los recibos aplicados (con la
+         conversión al TC Banorte cuando la divisa del recibo difiere de la
+         del pago), para que el monto propuesto nunca sea una caja negra. -->
+    <record id="view_account_payment_register_form_som_receipts" model="ir.ui.view">
+        <field name="name">account.payment.register.form.som.receipts</field>
+        <field name="model">account.payment.register</field>
+        <field name="inherit_id" ref="account.view_account_payment_register_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='amount']" position="after">
+                <field name="som_cash_receipt_ids" invisible="1"/>
+                <field name="som_receipt_note"
+                       nolabel="1"
+                       colspan="2"
+                       readonly="1"
+                       invisible="not som_receipt_note"
+                       class="text-muted"
+                       style="white-space: pre-wrap; font-size: 12px;"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
