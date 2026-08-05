@@ -9,20 +9,57 @@ class SaleOrder(models.Model):
         """Aplicar pago desde la pestaña unificada: abre el wizard estándar
         de pago sobre las facturas publicadas pendientes de la orden. El
         wizard propone el monto EXACTO de los recibos y comprobantes
-        pendientes (convertidos al TC Banorte si la divisa difiere)."""
+        pendientes (convertidos al TC Banorte si la divisa difiere).
+
+        FLUJO DIRECTO: si la orden aún no tiene factura publicada, aquí
+        mismo se crea (o se toma la borrador existente), se publica y se
+        abre el wizard — sin pasos manuales intermedios."""
         self.ensure_one()
-        invoices = self.invoice_ids.filtered(
-            lambda m: m.state == 'posted'
-            and m.payment_state in ('not_paid', 'partial')
-        )
+
+        def _pending(moves):
+            return moves.filtered(
+                lambda m: m.move_type == 'out_invoice'
+                and m.state == 'posted'
+                and m.payment_state in ('not_paid', 'partial')
+            )
+
+        invoices = _pending(self.invoice_ids)
+
+        if not invoices:
+            # 1) Facturas en borrador ya creadas: solo publicarlas.
+            drafts = self.invoice_ids.filtered(
+                lambda m: m.move_type == 'out_invoice' and m.state == 'draft')
+
+            # 2) Nada en borrador: crear la factura desde la orden.
+            if not drafts:
+                if self.state not in ('sale', 'done'):
+                    raise UserError(_(
+                        'La orden debe estar CONFIRMADA para poder facturar '
+                        'y aplicar el pago.'
+                    ))
+                try:
+                    # Sin skip_auth_check: los candados de autorización
+                    # (descuentos/precios) siguen aplicando.
+                    drafts = self._create_invoices(final=True)
+                except UserError:
+                    raise
+                except Exception as exc:
+                    raise UserError(_(
+                        'No se pudo crear la factura automáticamente: %s'
+                    ) % exc)
+
+            drafts = drafts.filtered(lambda m: m.state == 'draft')
+            if drafts:
+                drafts.action_post()
+
+            invoices = _pending(self.invoice_ids)
+
         if not invoices:
             raise UserError(_(
-                'No hay facturas publicadas pendientes de pago en esta orden.\n\n'
-                'Para aplicar el pago:\n'
-                '1. Crea la factura desde la orden\n'
-                '2. Publícala (Confirmar)\n'
-                '3. Regresa aquí y vuelve a intentar'
+                'No se encontró nada pendiente de facturar ni facturas con '
+                'saldo por pagar en esta orden.'
             ))
+
         return invoices.action_register_payment()
 
     cash_receipt_ids = fields.Many2many(
