@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Idempotente: crea el diario de efectivo CAJA NACIONAL solo si no
+         existe (corre en cada actualización del módulo). -->
+    <function model="account.journal" name="_som_ensure_caja_nacional"/>
+</odoo>

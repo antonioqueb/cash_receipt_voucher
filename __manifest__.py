@@ -1,6 +1,6 @@
 {
     'name': 'Comprobante de Pago en Efectivo',
-    'version': '19.0.5.2.0',
+    'version': '19.0.5.3.0',
     'category': 'Sales',
     'summary': 'Genera recibos de pago en efectivo desde órdenes de venta',
     'description': """
@@ -31,6 +31,7 @@
         'security/cash_receipt_security.xml',
         'security/ir.model.access.csv',
         'data/sequence_data.xml',
+        'data/caja_nacional_data.xml',
         'views/cash_receipt_views.xml',
         'views/account_payment_register_views.xml',
         'views/cash_internal_control_views.xml',
