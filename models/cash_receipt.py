@@ -526,11 +526,20 @@ class CashReceipt(models.Model):
         return action
 
     def _get_cash_journal(self):
-        """Obtener diario de efectivo de la compañía"""
-        return self.env['account.journal'].search([
+        """Diario de efectivo de la compañía.
+
+        Con más de una caja (p. ej. 'Caja Nacional' junto a 'Efectivo'),
+        los recibos deben seguir pagándose contra EFECTIVO: se prefiere el
+        diario llamado así y solo a falta de él se toma el primero.
+        """
+        Journal = self.env['account.journal']
+        domain = [
             ('type', '=', 'cash'),
             ('company_id', '=', self.company_id.id),
-        ], limit=1)
+        ]
+        journal = Journal.search(
+            domain + [('name', 'ilike', 'efectivo')], limit=1)
+        return journal or Journal.search(domain, limit=1)
 
     def action_view_payment(self):
         """Ver el pago vinculado"""
