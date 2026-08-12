@@ -1,5 +1,4 @@
 import base64
-from datetime import timedelta
 
 from markupsafe import Markup
 
@@ -306,7 +305,9 @@ class CashReceipt(models.Model):
     def create(self, vals_list):
         can_adjust = self._can_adjust_internal()
         for vals in vals_list:
-            self._check_recent_duplicate(vals)
+            # SIN candado anti-duplicados: los pagos parciales legítimos por
+            # el mismo monto (dos recibos de 50k sobre un pedido de 100k) son
+            # operación normal. El control vive en el PAGO formal, no aquí.
             if vals.get('name', _('Nuevo')) == _('Nuevo'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('cash.receipt') or _('Nuevo')
             # Espejo por defecto: el efectivo real arranca igual al oficial.
@@ -352,65 +353,12 @@ class CashReceipt(models.Model):
                 super(CashReceipt, rec).write(stamp)
         return res
 
-    @api.model
-    def _duplicate_window_minutes(self):
-        """Ventana anti-duplicados configurable (default 30 minutos).
-
-        Antes era fija de 60 segundos: solo cubría el doble-clic. Con 30
-        minutos también atrapa re-capturas diferidas (el cajero vuelve a
-        registrar el mismo cobro minutos después). Se ajusta con el parámetro
-        'cash_receipt_voucher.duplicate_window_minutes' (0 = desactivado).
-        """
-        param = self.env['ir.config_parameter'].sudo().get_param(
-            'cash_receipt_voucher.duplicate_window_minutes', '30',
-        )
-        try:
-            return max(int(param), 0)
-        except (TypeError, ValueError):
-            return 30
-
-    @api.model
-    def _check_recent_duplicate(self, vals):
-        """Evita recibos duplicados: bloquea crear un recibo idéntico (mismo
-        cliente, monto, divisa y pedidos) dentro de la ventana configurable.
-        El registro unificado lo omite con 'skip_duplicate_check'."""
-        if self.env.context.get('skip_duplicate_check'):
-            return
-        minutes = self._duplicate_window_minutes()
-        if not minutes:
-            return
-        partner_id = vals.get('partner_id')
-        amount = vals.get('amount')
-        if not partner_id or not amount:
-            return
-        order_ids = []
-        for cmd in (vals.get('sale_order_ids') or []):
-            if not isinstance(cmd, (list, tuple)) or not cmd:
-                continue
-            if cmd[0] == 6 and len(cmd) > 2:
-                order_ids = list(cmd[2] or [])
-            elif cmd[0] == 4 and len(cmd) > 1:
-                order_ids.append(cmd[1])
-        threshold = fields.Datetime.now() - timedelta(minutes=minutes)
-        domain = [
-            ('partner_id', '=', partner_id),
-            ('amount', '=', amount),
-            ('state', '!=', 'cancelled'),
-            ('create_date', '>=', threshold),
-        ]
-        if vals.get('currency_id'):
-            domain.append(('currency_id', '=', vals['currency_id']))
-        if order_ids:
-            domain.append(('sale_order_ids', 'in', order_ids))
-        dup = self.search(domain, limit=1)
-        if dup:
-            raise UserError(_(
-                'Ya se registró un recibo de efectivo idéntico (%(name)s) hace '
-                'menos de %(minutes)s minutos. Para evitar duplicados no se '
-                'creará otro.\n'
-                'Si de verdad necesitas un segundo recibo por el mismo monto, '
-                'espera a que pase la ventana o cancela el anterior.'
-            ) % {'name': dup.name, 'minutes': minutes})
+    # NOTA (2026-08-12): se ELIMINÓ la ventana anti-duplicados de recibos
+    # (mismo cliente/monto/divisa en N minutos). Bloqueaba pagos parciales
+    # legítimos por el mismo monto — dos recibos de 50k sobre un pedido de
+    # 100k. Los recibos y comprobantes se capturan sin restricción; el
+    # control de duplicidad real vive en el registro del PAGO formal, y el
+    # excedente es saldo a favor del CLIENTE.
 
     def action_deliver(self):
         """Marcar como entregado al cliente"""
