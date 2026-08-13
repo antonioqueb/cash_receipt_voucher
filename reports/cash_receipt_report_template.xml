@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-4 text-end">
                                 <div class="som-doc-subtitle" style="margin-top: 4px;">
-                                    Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                                    Impreso: <span t-esc="context_timestamp(datetime.datetime.now())" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
                                 </div>
                             </div>
                         </div>
@@ -58,7 +58,7 @@
                                         <td style="vertical-align: top; padding: 0; border: 1px solid #d8d8d8 !important;">
                                             <div class="som-info-row">
                                                 <div class="som-info-label">Fecha</div>
-                                                <div class="som-info-value"><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/></div>
+                                                <div class="som-info-value"><span t-field="doc.date" t-options="{'format': 'dd MMM yyyy HH:mm'}"/></div>
                                             </div>
                                             <div class="som-info-row">
                                                 <div class="som-info-label">Recibido por</div>
@@ -117,7 +117,7 @@
                                     <t t-foreach="doc.sale_order_ids" t-as="order">
                                         <tr>
                                             <td class="align-middle"><strong t-field="order.name"/></td>
-                                            <td class="text-center align-middle"><span t-field="order.date_order" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                            <td class="text-center align-middle"><span t-field="order.date_order" t-options="{'format': 'dd MMM yyyy'}"/></td>
                                             <td class="som-num align-middle"><span t-field="order.amount_total" t-options="{'widget': 'monetary', 'display_currency': order.currency_id}"/></td>
                                         </tr>
                                     </t>
@@ -147,7 +147,7 @@
                                         <td class="som-upper som-small som-muted" style="width: 22%; padding: 5px 8px; background-color: #f2f2f2; border: 1px solid #d8d8d8 !important;">Pago formal vinculado</td>
                                         <td style="width: 38%; padding: 5px 8px; font-weight: 700; border: 1px solid #d8d8d8 !important;"><span t-field="doc.payment_id.name"/></td>
                                         <td class="som-upper som-small som-muted" style="width: 15%; padding: 5px 8px; background-color: #f2f2f2; border: 1px solid #d8d8d8 !important;">Fecha</td>
-                                        <td style="width: 25%; padding: 5px 8px; font-weight: 600; border: 1px solid #d8d8d8 !important;"><span t-field="doc.payment_id.date"/></td>
+                                        <td style="width: 25%; padding: 5px 8px; font-weight: 600; border: 1px solid #d8d8d8 !important;"><span t-field="doc.payment_id.date" t-options="{'widget': 'date', 'format': 'dd MMM yyyy'}"/></td>
                                     </tr>
                                 </table>
                             </div>

@@ -34,7 +34,7 @@
                             </div>
                             <div class="col-4 text-end">
                                 <div class="som-doc-subtitle" style="margin-top: 4px;">
-                                    Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                                    Impreso: <span t-esc="context_timestamp(datetime.datetime.now())" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
                                 </div>
                             </div>
                         </div>
@@ -72,7 +72,7 @@
                                             <div class="som-info-row">
                                                 <div class="som-info-label">Fecha</div>
                                                 <div class="som-info-value">
-                                                    <span t-field="o.date" t-options="{'format': 'dd/MM/yyyy HH:mm'}"/>
+                                                    <span t-field="o.date" t-options="{'format': 'dd MMM yyyy HH:mm'}"/>
                                                 </div>
                                             </div>
                                             <div class="som-info-row">

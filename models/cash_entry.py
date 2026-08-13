@@ -19,8 +19,9 @@ from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError, AccessError
 from odoo.tools import float_compare, float_is_zero
 
-MESES_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+from odoo.addons.cash_receipt_voucher.models.som_date_format import (
+    MESES_ES, som_format_date,
+)
 
 CASH_INTERNAL_VIEW_GROUP = 'cash_receipt_voucher.group_cash_internal_control'
 CASH_INTERNAL_EDIT_GROUP = 'cash_receipt_voucher.group_cash_internal_control_edit'
@@ -405,7 +406,8 @@ class CashEntry(models.Model):
             if group == 'day':
                 cur = df
                 while cur <= dt:
-                    keys.append((cur.strftime('%Y-%m-%d'), cur.strftime('%d/%m')))
+                    keys.append((cur.strftime('%Y-%m-%d'),
+                                 '%02d %s' % (cur.day, MESES_ES[cur.month - 1])))
                     cur += timedelta(days=1)
             else:
                 cur = df.replace(day=1)
@@ -458,7 +460,10 @@ class CashEntry(models.Model):
             recent.append({
                 'id': r.id,
                 'name': r.name,
-                'date': fields.Datetime.context_timestamp(self, r.date).strftime('%d/%m/%Y') if r.date else '',
+                'date': som_format_date(
+                    fields.Datetime.context_timestamp(self, r.date) if r.date else False,
+                    empty='',
+                ),
                 'partner': r.partner_id.display_name or r.received_from or '',
                 'orders': ', '.join(r.sale_order_ids.mapped('name')),
                 'receipt': r.receipt_id.name or '',
@@ -475,7 +480,10 @@ class CashEntry(models.Model):
             recent_out.append({
                 'id': o.id,
                 'name': o.name,
-                'date': fields.Datetime.context_timestamp(self, o.date).strftime('%d/%m/%Y') if o.date else '',
+                'date': som_format_date(
+                    fields.Datetime.context_timestamp(self, o.date) if o.date else False,
+                    empty='',
+                ),
                 'delivered_to': o.delivered_to or '',
                 'concept': (o.concept or '')[:60],
                 'po': o.purchase_order_id.name or '',

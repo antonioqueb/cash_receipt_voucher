@@ -32,7 +32,7 @@
                             <div style="font-size:9.5px; font-weight:700; margin-top:2px;">Montos en: <span t-esc="mode_label"/></div>
                         </div>
                         <div class="col-4 text-end som-doc-subtitle">
-                            Impreso: <span t-esc="context_timestamp(datetime.datetime.now()).strftime('%d/%m/%Y %H:%M')"/>
+                            Impreso: <span t-esc="context_timestamp(datetime.datetime.now())" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
                         </div>
                     </div>
 
@@ -68,7 +68,7 @@
                                     <td><strong t-field="doc.name"/></td>
                                     <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
                                     <td><span t-field="doc.partner_id.name"/></td>
-                                    <td><span t-field="doc.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                    <td><span t-field="doc.date" t-options="{'format': 'dd MMM yyyy'}"/></td>
                                     <td class="som-num">
                                         <span t-esc="r_official" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
                                     </td>
@@ -137,7 +137,7 @@
                                     <t t-set="total_out" t-value="total_out + s_amount"/>
                                     <tr>
                                         <td><strong t-field="sal.name"/></td>
-                                        <td><span t-field="sal.date" t-options="{'format': 'dd/MM/yyyy'}"/></td>
+                                        <td><span t-field="sal.date" t-options="{'format': 'dd MMM yyyy'}"/></td>
                                         <td><span t-field="sal.delivered_to"/></td>
                                         <td><span t-esc="(sal.concept or '')[:70]"/></td>
                                         <td><span t-field="sal.user_id.name"/></td>
