@@ -31,7 +31,7 @@
                             <div style="font-size:9.5px; font-weight:700; margin-top:2px;">Montos en: <span t-esc="mode_label"/></div>
                         </div>
                         <div class="col-4 text-end som-doc-subtitle">
-                            Impreso: <span t-esc="context_timestamp(datetime.datetime.now())" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
+                            Impreso: <span t-esc="datetime.datetime.utcnow()" t-options="{'widget': 'datetime', 'format': 'dd MMM yyyy HH:mm'}"/>
                         </div>
                     </div>
 
