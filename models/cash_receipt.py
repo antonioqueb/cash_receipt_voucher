@@ -380,9 +380,10 @@ class CashReceipt(models.Model):
                     rec.amount, rec.currency_id.name),
                 user_id=rec.received_by.id or self.env.user.id,
             )
-            # Avisos UNIFICADOS en la(s) orden(es): Clara aplica + Lourdes/Zulema
-            # generan la factura. Se suprime con 'skip_payment_notify' cuando el
-            # registro unificado de pagos quiere notificar una sola vez.
+            # Aviso UNIFICADO en la(s) orden(es): SOLO Clara (aplicar pago;
+            # la factura ya se genera automáticamente — contabilidad no
+            # recibe actividades). Se suprime con 'skip_payment_notify'
+            # cuando el registro unificado quiere notificar una sola vez.
             if not rec.env.context.get('skip_payment_notify'):
                 rec._notify_orders_payment_received()
 
