@@ -48,6 +48,7 @@
                             string="Ver Pago"
                             type="object"
                             class="btn-info"
+                            groups="account.group_account_invoice"
                             invisible="not payment_id"/>
                     <button name="action_cancel"
                             string="Cancelar"
@@ -92,7 +93,7 @@
                             <field name="pending_amount"/>
                             <field name="is_fully_paid" invisible="1"/>
                             <field name="receipt_count" string="Otros Recibos"/>
-                            <field name="payment_id" readonly="1"/>
+                            <field name="payment_id" readonly="1" groups="account.group_account_invoice"/>
                             <field name="company_id" invisible="1"/>
                             <field name="has_internal_diff" invisible="1"/>
                         </group>
@@ -183,7 +184,7 @@
                        decoration-warning="state == 'delivered'"
                        decoration-success="state == 'paid'"
                        decoration-danger="state == 'cancelled'"/>
-                <field name="payment_id" optional="show"/>
+                <field name="payment_id" optional="show" groups="account.group_account_invoice"/>
                 <field name="received_by" optional="hide"/>
             </list>
         </field>

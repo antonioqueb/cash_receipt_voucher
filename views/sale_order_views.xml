@@ -65,7 +65,11 @@
                                    decoration-warning="state == 'delivered'"
                                    decoration-success="state == 'paid'"
                                    decoration-danger="state == 'cancelled'"/>
-                            <field name="payment_id"/>
+                            <!-- Referencia CONTABLE: el vendedor no lee account.payment, y sin
+                                 este groups= la pestaña entera revienta al abrirla (AccessError
+                                 "Failed to read field cash.receipt.payment_id"). Es justo la
+                                 pestaña donde sube su comprobante. -->
+                            <field name="payment_id" groups="account.group_account_invoice"/>
                             <field name="received_by"/>
                         </list>
                     </field>
@@ -138,7 +142,11 @@
                                    decoration-warning="state == 'delivered'"
                                    decoration-success="state == 'paid'"
                                    decoration-danger="state == 'cancelled'"/>
-                            <field name="payment_id"/>
+                            <!-- Referencia CONTABLE: el vendedor no lee account.payment, y sin
+                                 este groups= la pestaña entera revienta al abrirla (AccessError
+                                 "Failed to read field cash.receipt.payment_id"). Es justo la
+                                 pestaña donde sube su comprobante. -->
+                            <field name="payment_id" groups="account.group_account_invoice"/>
                             <field name="received_by"/>
                         </list>
                     </field>
