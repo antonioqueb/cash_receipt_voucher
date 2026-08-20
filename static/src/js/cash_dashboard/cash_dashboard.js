@@ -189,7 +189,7 @@ export class CashDashboard extends Component {
     get seriesMax() {
         let m = 0;
         for (const b of this.series) {
-            m = Math.max(m, b.official || 0, b.real || 0);
+            m = Math.max(m, b.official || 0, b.out || 0);
         }
         return m || 1;
     }

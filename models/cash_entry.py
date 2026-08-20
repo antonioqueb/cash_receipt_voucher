@@ -392,7 +392,9 @@ class CashEntry(models.Model):
         total_real = sum(_valint(r) for r in entries)
         total_diff = total_official - total_real
         total_out = sum(_val_out(o) for o in disbursements)
-        cash_on_hand = total_diff - total_out
+        # SALDO DE CAJA = ENTRADAS − SALIDAS. La caja es manual e
+        # independiente: lo depositado a cuenta ya no participa del saldo.
+        cash_on_hand = total_official - total_out
         with_diff = entries.filtered(lambda r: abs(_en_caja(r)) > 0.001)
         shortage = sum(_en_caja(r) for r in entries if _en_caja(r) > 0)
         overage = sum(-_en_caja(r) for r in entries if _en_caja(r) < 0)
@@ -415,7 +417,7 @@ class CashEntry(models.Model):
                     keys.append((cur.strftime('%Y-%m'),
                                  '%s %s' % (MESES_ES[cur.month - 1], str(cur.year)[2:])))
                     cur += relativedelta(months=1)
-        buckets = OrderedDict((k, {'official': 0.0, 'real': 0.0, 'diff': 0.0}) for k, _l in keys)
+        buckets = OrderedDict((k, {'official': 0.0, 'real': 0.0, 'diff': 0.0, 'out': 0.0}) for k, _l in keys)
         labels = [l for _k, l in keys]
         for r in entries:
             if not r.date:
@@ -437,17 +439,20 @@ class CashEntry(models.Model):
             b = buckets.get(k)
             if b is not None:
                 b['diff'] -= _val_out(o)
+                b['out'] += _val_out(o)
 
         series = list(buckets.values())
 
-        # --- Ranking por cliente (top 8 por efectivo real) ---
+        # --- Ranking por cliente (top 8 por efectivo RECIBIDO) ---
+        # La clave se llama 'real' por compatibilidad con el front, pero
+        # desde el rediseño de caja manual rankea por el monto recibido.
         by_partner = {}
         for r in entries:
             p = r.partner_id
             if not p:
                 continue
             entry = by_partner.setdefault(p.id, {'name': p.display_name, 'real': 0.0, 'diff': 0.0})
-            entry['real'] += _valint(r)
+            entry['real'] += _val(r)
             entry['diff'] += _en_caja(r)
         top_partners = sorted(by_partner.values(), key=lambda e: e['real'], reverse=True)[:8]
         retention_partners = sorted(
@@ -497,6 +502,7 @@ class CashEntry(models.Model):
         retention_rate = (total_diff / total_official * 100.0) if total_official else 0.0
         avg_retention = (total_diff / count) if count else 0.0
         avg_ticket = (total_official / count) if count else 0.0
+        avg_out = (total_out / len(disbursements)) if disbursements else 0.0
         pending_company = sum(entries.mapped('partner_id').mapped('credit'))
         if disp_cur and company_cur and disp_cur != company_cur:
             pending_total = company_cur._convert(
@@ -547,6 +553,7 @@ class CashEntry(models.Model):
                 'deposit_rate': deposit_rate,
                 'retention_rate': retention_rate,
                 'avg_retention': avg_retention,
+                'avg_out': avg_out,
                 'avg_ticket': avg_ticket,
                 'count': count,
                 'partners_count': len(entries.mapped('partner_id')),
