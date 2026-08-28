@@ -106,6 +106,20 @@ class PettyCashEntry(models.Model):
     # Permisos
     # ------------------------------------------------------------------
     @api.model
+    def _petty_group_users(self, xmlid):
+        """Usuarios del grupo (directos + implicados). Odoo 19: user_ids solo
+        trae miembros directos; all_user_ids incluye implicación."""
+        Users = self.env['res.users'].sudo()
+        group = self.env.ref(xmlid, raise_if_not_found=False)
+        if not group:
+            return Users
+        users = Users
+        for fname in ('all_user_ids', 'user_ids', 'users'):
+            if fname in group._fields:
+                users |= group[fname]
+        return users.filtered(lambda u: u.active and not u.share)
+
+    @api.model
     def _is_manager(self):
         u = self.env.user
         return self.env.su or u.has_group(GROUP_MANAGER) or u.has_group(GROUP_CASH_ADMIN)
@@ -418,8 +432,7 @@ class CashDisbursementPetty(models.Model):
             rec.petty_entry_id = entry
             rec.message_post(body=_('Entrega a Caja Chica registrada: ingreso %s pendiente de recibir.') % entry.name,
                              message_type='notification')
-            for user in self.env['res.users'].sudo().search([('active', '=', True), ('share', '=', False)]).filtered(
-                    lambda u: u.has_group(GROUP_USER)):
+            for user in Entry._petty_group_users(GROUP_USER):
                 entry.activity_schedule('mail.mail_activity_data_todo', user_id=user.id,
                                         summary=_('Recibir fondo de caja chica'),
                                         note=_('%s entregó %s. Confirma la recepción en Caja Chica.') % (
