@@ -1,6 +1,6 @@
 {
     'name': 'Comprobante de Pago en Efectivo',
-    'version': '19.0.7.1.0',
+    'version': '19.0.7.1.1',
     'category': 'Sales',
     'summary': 'Genera recibos de pago en efectivo desde órdenes de venta',
     'description': """
