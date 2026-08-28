@@ -192,7 +192,7 @@
     .o_cash_legend { display: flex; gap: 0.8rem; font-size: 0.76rem; color: var(--c-muted); span { display: inline-flex; align-items: center; gap: 0.35rem; } }
     .o_dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
     .o_dot_blue { background: var(--c-blue); } .o_dot_slate { background: var(--c-slate); }
-    .o_dot_gold { background: var(--c-gold); } .o_dot_amber { background: var(--c-amber); }
+    .o_dot_gold { background: var(--c-gold); } .o_dot_amber { background: var(--c-amber); } .o_dot_green { background: var(--c-green); }
 
     // Gráfico de flujo
     .o_cash_chart { position: relative; height: 240px; padding-left: 44px; }
