@@ -290,6 +290,83 @@ export class CashDashboard extends Component {
         const found = PERIODS.find((p) => p.key === this.state.period);
         return found ? found.label : "";
     }
+
+    // ---------------------------------------------------------------- rediseño
+    // Formato corto para ejes/etiquetas: 1.2 k · 3.4 M
+    short(val) {
+        const n = parseFloat(val || 0);
+        const a = Math.abs(n);
+        const sign = n < 0 ? "-" : "";
+        if (a >= 1e6) return sign + (a / 1e6).toFixed(a >= 1e7 ? 0 : 1) + " M";
+        if (a >= 1e3) return sign + (a / 1e3).toFixed(a >= 1e5 ? 0 : 1) + " k";
+        return sign + a.toFixed(0);
+    }
+
+    // Líneas guía del gráfico de flujo (100/75/50/25/0 % del máximo)
+    get gridTicks() {
+        const max = this.seriesMax;
+        return [100, 75, 50, 25].map((p) => ({ pct: p, label: this.short((max * p) / 100) }));
+    }
+
+    // Sparkline de entradas (SVG 100×32) para la tarjeta de Entradas
+    get sparkPoints() {
+        const s = this.series;
+        if (s.length < 2) return "";
+        const max = Math.max(...s.map((b) => b.official || 0), 1);
+        const w = 100, h = 32;
+        return s
+            .map((b, i) => `${((i / (s.length - 1)) * w).toFixed(2)},${(h - ((b.official || 0) / max) * (h - 3) - 1.5).toFixed(2)}`)
+            .join(" ");
+    }
+    get sparkArea() {
+        const pts = this.sparkPoints;
+        return pts ? `0,32 ${pts} 100,32` : "";
+    }
+
+    // Donut de balance: entradas vs salidas del periodo
+    get flowDonut() {
+        const k = this.kpis;
+        const inn = Math.max(parseFloat(k.total_official || 0), 0);
+        const out = Math.max(parseFloat(k.total_out || 0), 0);
+        const tot = inn + out;
+        const C = 2 * Math.PI * 54;
+        const pIn = tot > 0 ? inn / tot : 0;
+        return {
+            circ: C,
+            inDash: `${pIn * C} ${C}`,
+            outDash: `${(1 - pIn) * C} ${C}`,
+            outOffset: -(pIn * C),
+            pIn: Math.round(pIn * 100),
+            pOut: Math.round((1 - pIn) * 100),
+            empty: tot <= 0,
+        };
+    }
+
+    // Participación de cada cliente en el ranking
+    get partnersTotal() {
+        return this.topPartners.reduce((a, p) => a + (parseFloat(p.real) || 0), 0) || 1;
+    }
+    share(p) {
+        return ((parseFloat(p.real) || 0) / this.partnersTotal) * 100;
+    }
+    sharePct(p) {
+        return this.share(p).toFixed(1) + "%";
+    }
+    // Origen de entradas (recibo vs manual) como barra apilada
+    get originPct() {
+        const s = this.states;
+        const linked = parseInt(s.linked || 0), manual = parseInt(s.manual || 0);
+        const tot = linked + manual;
+        return tot ? Math.round((linked / tot) * 100) : 0;
+    }
+    get periodSummary() {
+        const k = this.kpis;
+        return {
+            inn: k.total_official || 0,
+            out: k.total_out || 0,
+            net: (k.total_official || 0) - (k.total_out || 0),
+        };
+    }
 }
 
 registry.category("actions").add("cash_dashboard", CashDashboard);

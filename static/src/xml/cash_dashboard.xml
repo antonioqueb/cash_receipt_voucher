@@ -4,187 +4,246 @@
     <t t-name="cash_receipt_voucher.CashDashboard">
         <div class="o_cash_dash">
 
-            <!-- ============ TOPBAR ============ -->
-            <div class="o_cash_topbar">
-                <div class="o_cash_brand">
-                    <div class="o_cash_brand_icon">
-                        <i class="fa fa-money"/>
+            <!-- ═══════════════ HERO ═══════════════ -->
+            <div class="o_cash_hero">
+                <div class="o_cash_hero_top">
+                    <div class="o_cash_brand">
+                        <div class="o_cash_brand_icon"><i class="fa fa-money"/></div>
+                        <div>
+                            <h1>Control de Efectivo</h1>
+                            <p>Caja manual · entradas − salidas
+                                <t t-if="state.data and state.data.date_from"> · <b t-esc="state.data.date_from"/> → <b t-esc="state.data.date_to"/></t>
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h1>Control de Efectivo</h1>
-                        <p>Tablero interno · caja manual (entradas − salidas)</p>
-                    </div>
-                </div>
-                <div class="o_cash_actions">
-                    <div class="o_cash_periods">
-                        <t t-foreach="periods" t-as="p" t-key="p.key">
-                            <button class="o_cash_chip"
-                                    t-att-class="{ 'o_active': state.period === p.key }"
-                                    t-on-click="() => this.setPeriod(p.key)">
-                                <t t-esc="p.label"/>
-                            </button>
-                        </t>
-                    </div>
-                    <button class="o_cash_btn o_cash_btn_ghost" t-on-click="() => this.refresh()" title="Actualizar">
-                        <i class="fa fa-refresh"/>
-                    </button>
-                    <button class="o_cash_btn o_cash_btn_primary"
-                            t-on-click="() => this.printPeriod()"
-                            t-att-disabled="state.printing">
-                        <i class="fa fa-file-pdf-o"/> Imprimir PDF
-                    </button>
-                </div>
-            </div>
-
-            <!-- Selector de divisa -->
-            <div class="o_cash_currencybar">
-                <span class="o_cash_curtitle"><i class="fa fa-exchange"/> Divisa</span>
-                <div class="o_cash_periods">
-                    <t t-foreach="currencies" t-as="c" t-key="c.key">
-                        <button class="o_cash_chip"
-                                t-att-class="{ 'o_active': state.currencyMode === c.key }"
-                                t-on-click="() => this.setCurrency(c.key)">
-                            <t t-esc="c.label"/>
+                    <div class="o_cash_actions">
+                        <div class="o_cash_seg">
+                            <t t-foreach="periods" t-as="p" t-key="p.key">
+                                <button class="o_cash_seg_btn" t-att-class="{ 'o_active': state.period === p.key }"
+                                        t-on-click="() => this.setPeriod(p.key)"><t t-esc="p.label"/></button>
+                            </t>
+                        </div>
+                        <div class="o_cash_seg o_cash_seg_cur" title="Divisa">
+                            <t t-foreach="currencies" t-as="c" t-key="c.key">
+                                <button class="o_cash_seg_btn" t-att-class="{ 'o_active': state.currencyMode === c.key }"
+                                        t-on-click="() => this.setCurrency(c.key)"><t t-esc="c.label"/></button>
+                            </t>
+                        </div>
+                        <button class="o_cash_ibtn" t-on-click="() => this.refresh()" title="Actualizar"><i class="fa fa-refresh"/></button>
+                        <button class="o_cash_btn_gold" t-on-click="() => this.printPeriod()" t-att-disabled="state.printing">
+                            <i class="fa fa-file-pdf-o"/> Imprimir PDF
                         </button>
-                    </t>
+                    </div>
                 </div>
-                <span class="o_cash_curbadge">Mostrando en <b t-esc="curLabel"/></span>
-                <span class="o_cash_curhint" t-if="mix.usd and mix.mxn">
-                    <i class="fa fa-info-circle"/> Este periodo tiene entradas en USD y MXN (<t t-esc="mix.usd"/> USD · <t t-esc="mix.mxn"/> MXN)
-                </span>
+
+                <div class="o_cash_hero_meta" t-if="state.data">
+                    <span class="o_cash_meta_pill"><i class="fa fa-exchange"/> Mostrando en <b t-esc="curLabel"/></span>
+                    <span class="o_cash_meta_pill o_cash_meta_warn" t-if="mix.usd and mix.mxn">
+                        <i class="fa fa-info-circle"/> Periodo mixto: <t t-esc="mix.usd"/> USD · <t t-esc="mix.mxn"/> MXN
+                    </span>
+                    <span class="o_cash_meta_pill" t-if="state.data.series_group === 'month'"><i class="fa fa-calendar"/> Agrupado por mes</span>
+                </div>
+
+                <div class="o_cash_custom" t-if="state.period === 'custom'">
+                    <span>Del</span><input type="date" t-model="state.dateFrom"/>
+                    <span>al</span><input type="date" t-model="state.dateTo"/>
+                    <button class="o_cash_btn_gold" t-on-click="() => this.applyCustom()">Aplicar</button>
+                </div>
+
+                <!-- KPIs flotando sobre el borde del hero -->
+                <div class="o_cash_kpis" t-if="!state.loading and state.data">
+                    <div class="o_cash_kpi o_cash_kpi_hero">
+                        <div class="o_cash_kpi_head"><span>Saldo en caja</span><i class="fa fa-money"/></div>
+                        <div class="o_cash_kpi_value" t-att-class="{ 'o_cash_kpi_negative': kpis.cash_on_hand &lt; 0 }" t-esc="money(kpis.cash_on_hand)"/>
+                        <div class="o_cash_kpi_meter" t-if="!flowDonut.empty">
+                            <div class="o_cash_kpi_meter_in" t-attf-style="width: {{ flowDonut.pIn }}%"/>
+                        </div>
+                        <div class="o_cash_kpi_foot">
+                            <span><i class="o_dot o_dot_gold"/> entradas <b t-esc="money(kpis.total_official)"/></span>
+                            <span><i class="o_dot o_dot_slate"/> salidas <b t-esc="money(kpis.total_out)"/></span>
+                        </div>
+                    </div>
+
+                    <div class="o_cash_kpi">
+                        <div class="o_cash_kpi_head"><span>Entradas de caja</span><i class="fa fa-sign-in"/></div>
+                        <div class="o_cash_kpi_value" t-esc="money(kpis.total_official)"/>
+                        <svg class="o_cash_spark" viewBox="0 0 100 32" preserveAspectRatio="none" t-if="sparkPoints">
+                            <polygon class="o_cash_spark_area" t-att-points="sparkArea"/>
+                            <polyline class="o_cash_spark_line" t-att-points="sparkPoints"/>
+                        </svg>
+                        <div class="o_cash_kpi_foot">
+                            <span class="o_cash_delta" t-att-class="deltaClass(deltas.official)" t-esc="deltaText(deltas.official)"/>
+                            <span>vs periodo anterior · <b t-esc="int(kpis.count)"/> entrada(s)</span>
+                        </div>
+                    </div>
+
+                    <div class="o_cash_kpi">
+                        <div class="o_cash_kpi_head"><span>Salidas de caja</span><i class="fa fa-sign-out"/></div>
+                        <div class="o_cash_kpi_value o_cash_txt_slate" t-esc="money(kpis.total_out)"/>
+                        <div class="o_cash_kpi_foot">
+                            <span><b t-esc="int(kpis.out_count)"/> salida(s)</span>
+                            <span>promedio <b t-esc="money(kpis.avg_out)"/></span>
+                        </div>
+                    </div>
+
+                    <div class="o_cash_kpi">
+                        <div class="o_cash_kpi_head"><span>Pendiente por cobrar</span><i class="fa fa-hourglass-half"/></div>
+                        <div class="o_cash_kpi_value o_cash_txt_amber" t-esc="money(kpis.pending_total)"/>
+                        <div class="o_cash_kpi_foot">
+                            <span><b t-esc="int(kpis.partners_count)"/> cliente(s) con entradas en el periodo</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Rango personalizado -->
-            <div class="o_cash_custom" t-if="state.period === 'custom'">
-                <span>Del</span>
-                <input type="date" t-model="state.dateFrom"/>
-                <span>al</span>
-                <input type="date" t-model="state.dateTo"/>
-                <button class="o_cash_btn o_cash_btn_primary" t-on-click="() => this.applyCustom()">Aplicar</button>
-            </div>
-
-            <!-- ============ LOADING ============ -->
+            <!-- ═══════════════ LOADING ═══════════════ -->
             <div class="o_cash_loading" t-if="state.loading">
                 <div class="o_cash_spinner"/>
                 <span>Cargando indicadores…</span>
             </div>
 
-            <!-- ============ CONTENT ============ -->
+            <!-- ═══════════════ CUERPO ═══════════════ -->
             <div class="o_cash_body" t-if="!state.loading and state.data">
 
-                <!-- KPI CARDS: Saldo · Entradas · Salidas -->
-                <div class="o_cash_kpis">
-                    <div class="o_cash_card" t-att-class="kpis.cash_on_hand &lt; 0 ? 'o_cash_grad_slate' : 'o_cash_grad_orange'">
-                        <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Saldo en caja</span>
-                            <i class="fa fa-money"/>
-                        </div>
-                        <div class="o_cash_card_value" t-esc="money(kpis.cash_on_hand)"/>
-                        <div class="o_cash_card_foot">entradas <t t-esc="money(kpis.total_official)"/> − salidas <t t-esc="money(kpis.total_out)"/></div>
-                    </div>
-
-                    <div class="o_cash_card o_cash_grad_blue">
-                        <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Entradas de caja</span>
-                            <i class="fa fa-sign-in"/>
-                        </div>
-                        <div class="o_cash_card_value" t-esc="money(kpis.total_official)"/>
-                        <div class="o_cash_card_foot">
-                            <t t-esc="deltaText(deltas.official)"/> vs periodo anterior
-                        </div>
-                    </div>
-
-                    <div class="o_cash_card o_cash_grad_slate">
-                        <div class="o_cash_card_top">
-                            <span class="o_cash_card_label">Salidas de caja</span>
-                            <i class="fa fa-sign-out"/>
-                        </div>
-                        <div class="o_cash_card_value" t-esc="money(kpis.total_out)"/>
-                        <div class="o_cash_card_foot"><t t-esc="int(kpis.out_count)"/> salida(s) en el periodo</div>
-                    </div>
-
-                </div>
-
-                <!-- MAIN GRID -->
-                <div class="o_cash_grid">
-
-                    <!-- Serie temporal: entradas vs salidas -->
+                <!-- Fila 1: flujo + balance -->
+                <div class="o_cash_row o_cash_row_flow">
                     <div class="o_cash_panel o_cash_panel_chart">
                         <div class="o_cash_panel_head">
-                            <h3>Flujo del periodo</h3>
+                            <div>
+                                <h3>Flujo del periodo</h3>
+                                <p>Entradas contra salidas por <t t-esc="state.data.series_group === 'month' ? 'mes' : 'día'"/></p>
+                            </div>
                             <div class="o_cash_legend">
                                 <span><i class="o_dot o_dot_blue"/> Entradas</span>
-                                <span><i class="o_dot o_dot_sky"/> Salidas</span>
+                                <span><i class="o_dot o_dot_slate"/> Salidas</span>
                             </div>
                         </div>
-                        <div class="o_cash_bars" t-if="series.length">
-                            <t t-foreach="series" t-as="b" t-key="b_index">
-                                <div class="o_cash_bar_col">
-                                    <div class="o_cash_bar_pair">
-                                        <div class="o_cash_bar o_cash_bar_blue"
-                                             t-attf-style="height: {{ barH(b.official) }}%"
-                                             t-att-title="money(b.official)"/>
-                                        <div class="o_cash_bar o_cash_bar_sky"
-                                             t-attf-style="height: {{ barH(b.out) }}%"
-                                             t-att-title="money(b.out)"/>
+                        <div class="o_cash_chart" t-if="series.length">
+                            <div class="o_cash_gridlines">
+                                <t t-foreach="gridTicks" t-as="g" t-key="g.pct">
+                                    <div class="o_cash_gridline" t-attf-style="bottom: {{ g.pct }}%"><span t-esc="g.label"/></div>
+                                </t>
+                                <div class="o_cash_gridline o_cash_gridline_zero" style="bottom: 0%"><span>0</span></div>
+                            </div>
+                            <div class="o_cash_bars">
+                                <t t-foreach="series" t-as="b" t-key="b_index">
+                                    <div class="o_cash_bar_col" t-att-class="{ 'o_has_data': (b.official or b.out) }">
+                                        <div class="o_cash_bar_tip">
+                                            <b t-esc="seriesLabels[b_index]"/>
+                                            <span><i class="o_dot o_dot_blue"/> <t t-esc="money(b.official)"/></span>
+                                            <span><i class="o_dot o_dot_slate"/> <t t-esc="money(b.out)"/></span>
+                                        </div>
+                                        <div class="o_cash_bar_pair">
+                                            <div class="o_cash_bar o_cash_bar_blue" t-attf-style="height: {{ barH(b.official) }}%"/>
+                                            <div class="o_cash_bar o_cash_bar_slate" t-attf-style="height: {{ barH(b.out) }}%"/>
+                                        </div>
+                                        <div class="o_cash_bar_label" t-esc="seriesLabels[b_index]"/>
                                     </div>
-                                    <div class="o_cash_bar_label" t-esc="seriesLabels[b_index]"/>
+                                </t>
+                            </div>
+                        </div>
+                        <div class="o_cash_empty" t-if="!series.length">Sin movimientos en el periodo.</div>
+                        <div class="o_cash_chart_foot" t-if="series.length">
+                            <span>Entradas <b t-esc="money(periodSummary.inn)"/></span>
+                            <span>Salidas <b class="o_cash_txt_slate" t-esc="money(periodSummary.out)"/></span>
+                            <span>Neto <b t-att-class="periodSummary.net &lt; 0 ? 'o_cash_txt_red' : 'o_cash_txt_green'" t-esc="money(periodSummary.net)"/></span>
+                        </div>
+                    </div>
+
+                    <div class="o_cash_panel o_cash_panel_balance">
+                        <div class="o_cash_panel_head">
+                            <div><h3>Balance del periodo</h3><p>Proporción entradas / salidas</p></div>
+                        </div>
+                        <div class="o_cash_donut_wrap">
+                            <svg class="o_cash_donut" viewBox="0 0 120 120">
+                                <circle class="o_cash_donut_bg" cx="60" cy="60" r="54"/>
+                                <circle class="o_cash_donut_out" cx="60" cy="60" r="54"
+                                        t-att-stroke-dasharray="flowDonut.outDash" t-att-stroke-dashoffset="flowDonut.outOffset"
+                                        transform="rotate(-90 60 60)"/>
+                                <circle class="o_cash_donut_in" cx="60" cy="60" r="54"
+                                        t-att-stroke-dasharray="flowDonut.inDash" transform="rotate(-90 60 60)"/>
+                            </svg>
+                            <div class="o_cash_donut_center">
+                                <span class="o_cash_donut_pct"><t t-esc="flowDonut.pIn"/>%</span>
+                                <span class="o_cash_donut_sub">entradas</span>
+                            </div>
+                        </div>
+                        <div class="o_cash_donut_legend">
+                            <div><i class="o_dot o_dot_blue"/> Entradas <b t-esc="money(kpis.total_official)"/></div>
+                            <div><i class="o_dot o_dot_slate"/> Salidas <b t-esc="money(kpis.total_out)"/></div>
+                            <div class="o_cash_donut_net"><i class="o_dot o_dot_gold"/> Neto del periodo <b t-esc="money(periodSummary.net)"/></div>
+                        </div>
+                        <div class="o_cash_origin">
+                            <div class="o_cash_origin_head"><span>Origen de entradas</span><span><t t-esc="int(states.linked)"/> con recibo · <t t-esc="int(states.manual)"/> manuales</span></div>
+                            <div class="o_cash_origin_bar">
+                                <div class="o_cash_origin_linked" t-attf-style="width: {{ originPct }}%"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fila 2: ranking + indicadores -->
+                <div class="o_cash_row o_cash_row_mid">
+                    <div class="o_cash_panel" t-if="topPartners.length">
+                        <div class="o_cash_panel_head">
+                            <div><h3>Top clientes por efectivo recibido</h3><p>Participación sobre los <t t-esc="topPartners.length"/> principales</p></div>
+                        </div>
+                        <div class="o_cash_rank">
+                            <t t-foreach="topPartners" t-as="p" t-key="p_index">
+                                <div class="o_cash_rank_row">
+                                    <span class="o_cash_rank_pos" t-att-class="{ 'o_top': p_index === 0 }" t-esc="p_index + 1"/>
+                                    <div class="o_cash_rank_body">
+                                        <div class="o_cash_rank_line">
+                                            <span class="o_cash_rank_name" t-esc="p.name"/>
+                                            <span class="o_cash_rank_val" t-esc="money(p.real)"/>
+                                        </div>
+                                        <div class="o_cash_rank_track">
+                                            <div class="o_cash_rank_fill" t-attf-style="width: {{ partnerW(p.real) }}%"/>
+                                        </div>
+                                    </div>
+                                    <span class="o_cash_rank_share" t-esc="sharePct(p)"/>
                                 </div>
                             </t>
                         </div>
-                        <div class="o_cash_empty" t-if="!series.length">Sin movimientos en el periodo.</div>
                     </div>
-                </div>
 
-                <!-- Ranking por cliente -->
-                <div class="o_cash_panel" t-if="topPartners.length">
-                    <div class="o_cash_panel_head"><h3>Top clientes por efectivo recibido</h3></div>
-                    <div class="o_cash_rank">
-                        <t t-foreach="topPartners" t-as="p" t-key="p_index">
-                            <div class="o_cash_rank_row">
-                                <div class="o_cash_rank_name" t-esc="p.name"/>
-                                <div class="o_cash_rank_track">
-                                    <div class="o_cash_rank_fill" t-attf-style="width: {{ partnerW(p.real) }}%"/>
-                                </div>
-                                <div class="o_cash_rank_val" t-esc="money(p.real)"/>
-                            </div>
-                        </t>
-                    </div>
-                </div>
-
-                <!-- Indicadores de dirección -->
-                <div class="o_cash_grid2">
                     <div class="o_cash_panel">
-                        <div class="o_cash_panel_head"><h3>Indicadores de dirección</h3></div>
+                        <div class="o_cash_panel_head">
+                            <div><h3>Indicadores de dirección</h3><p>Lectura rápida del periodo</p></div>
+                        </div>
                         <div class="o_cash_mini">
                             <div class="o_cash_mini_item">
                                 <span class="o_cash_mini_label">Ticket promedio</span>
                                 <span class="o_cash_mini_val" t-esc="money(kpis.avg_ticket)"/>
+                                <span class="o_cash_mini_hint">por entrada</span>
                             </div>
                             <div class="o_cash_mini_item">
                                 <span class="o_cash_mini_label">Salida promedio</span>
-                                <span class="o_cash_mini_val o_cash_orange_txt" t-esc="money(kpis.avg_out)"/>
+                                <span class="o_cash_mini_val o_cash_txt_slate" t-esc="money(kpis.avg_out)"/>
+                                <span class="o_cash_mini_hint">por salida</span>
                             </div>
                             <div class="o_cash_mini_item">
                                 <span class="o_cash_mini_label">Entrada más alta</span>
                                 <span class="o_cash_mini_val" t-esc="money(max.value)"/>
-                                <span class="o_cash_mini_hint" t-esc="max.name"/>
+                                <span class="o_cash_mini_hint"><t t-esc="max.name"/><t t-if="max.partner"> · <t t-esc="max.partner"/></t></span>
                             </div>
                             <div class="o_cash_mini_item">
                                 <span class="o_cash_mini_label">Pendiente por cobrar</span>
-                                <span class="o_cash_mini_val" t-esc="money(kpis.pending_total)"/>
+                                <span class="o_cash_mini_val o_cash_txt_amber" t-esc="money(kpis.pending_total)"/>
                                 <span class="o_cash_mini_hint"><t t-esc="int(kpis.partners_count)"/> clientes</span>
                             </div>
                             <div class="o_cash_mini_item">
                                 <span class="o_cash_mini_label">Saldo del periodo</span>
-                                <span class="o_cash_mini_val" t-esc="money(kpis.cash_on_hand)"/>
+                                <span class="o_cash_mini_val" t-att-class="kpis.cash_on_hand &lt; 0 ? 'o_cash_txt_red' : 'o_cash_txt_green'" t-esc="money(kpis.cash_on_hand)"/>
+                                <span class="o_cash_mini_hint">entradas − salidas</span>
                             </div>
                             <div class="o_cash_mini_item">
-                                <span class="o_cash_mini_label">Origen (recibo/manual)</span>
+                                <span class="o_cash_mini_label">Origen (recibo / manual)</span>
                                 <span class="o_cash_mini_states">
                                     <span class="o_cash_pill o_pill_paid" t-esc="int(states.linked)"/>
                                     <span class="o_cash_pill o_pill_draft" t-esc="int(states.manual)"/>
                                 </span>
+                                <span class="o_cash_mini_hint"><t t-esc="originPct"/>% respaldadas por recibo</span>
                             </div>
                         </div>
                     </div>
@@ -192,97 +251,84 @@
 
                 <!-- Retención por cliente -->
                 <div class="o_cash_panel" t-if="retentionPartners.length">
-                    <div class="o_cash_panel_head"><h3>Efectivo en caja por cliente</h3></div>
-                    <div class="o_cash_rank">
+                    <div class="o_cash_panel_head">
+                        <div><h3>Efectivo en caja por cliente</h3><p>Recibido y aún no depositado a cuenta</p></div>
+                    </div>
+                    <div class="o_cash_rank o_cash_rank_two">
                         <t t-foreach="retentionPartners" t-as="p" t-key="p_index">
                             <div class="o_cash_rank_row">
-                                <div class="o_cash_rank_name" t-esc="p.name"/>
-                                <div class="o_cash_rank_track">
-                                    <div class="o_cash_rank_fill o_cash_rank_fill_orange" t-attf-style="width: {{ retW(p.diff) }}%"/>
+                                <span class="o_cash_rank_pos o_pos_amber" t-esc="p_index + 1"/>
+                                <div class="o_cash_rank_body">
+                                    <div class="o_cash_rank_line">
+                                        <span class="o_cash_rank_name" t-esc="p.name"/>
+                                        <span class="o_cash_rank_val o_cash_txt_amber" t-esc="money(p.diff)"/>
+                                    </div>
+                                    <div class="o_cash_rank_track">
+                                        <div class="o_cash_rank_fill o_cash_rank_fill_amber" t-attf-style="width: {{ retW(p.diff) }}%"/>
+                                    </div>
                                 </div>
-                                <div class="o_cash_rank_val o_cash_orange_txt" t-esc="money(p.diff)"/>
                             </div>
                         </t>
                     </div>
                 </div>
 
-                <!-- Tabla de recientes -->
+                <!-- Tablas -->
                 <div class="o_cash_panel">
-                    <div class="o_cash_panel_head"><h3>Entradas de caja recientes</h3></div>
+                    <div class="o_cash_panel_head">
+                        <div><h3>Entradas de caja recientes</h3><p>Últimas <t t-esc="recent.length"/> del periodo · toca una para abrirla</p></div>
+                    </div>
                     <div class="o_cash_table_wrap">
                         <table class="o_cash_table">
                             <thead>
                                 <tr>
-                                    <th>Folio</th>
-                                    <th>Pedido</th>
-                                    <th>Recibo</th>
-                                    <th>Cliente</th>
-                                    <th>Fecha</th>
-                                    <th>Div</th>
-                                    <th class="text-end">Recibido</th>
-                                    <th class="text-end">A cuenta</th>
-                                    <th class="text-end">En caja</th>
-                                    <th/>
+                                    <th>Folio</th><th>Pedido</th><th>Recibo</th><th>Cliente</th><th>Fecha</th><th>Div</th>
+                                    <th class="text-end">Recibido</th><th class="text-end">A cuenta</th><th class="text-end">En caja</th><th/>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr t-foreach="recent" t-as="r" t-key="r.id" class="o_cash_row"
-                                    t-on-click="() => this.openReceipt(r.id)">
-                                    <td><b t-esc="r.name"/></td>
+                                <tr t-foreach="recent" t-as="r" t-key="r.id" class="o_cash_row_click" t-on-click="() => this.openReceipt(r.id)">
+                                    <td><span class="o_cash_folio" t-esc="r.name"/></td>
                                     <td t-esc="r.orders"/>
                                     <td t-esc="r.receipt"/>
-                                    <td t-esc="r.partner"/>
-                                    <td t-esc="r.date"/>
+                                    <td class="o_cash_td_strong" t-esc="r.partner"/>
+                                    <td class="o_cash_td_muted" t-esc="r.date"/>
                                     <td><span class="o_cash_curtag" t-esc="r.cur"/></td>
-                                    <td class="text-end" t-esc="money(r.official)"/>
-                                    <td class="text-end" t-esc="money(r.real)"/>
-                                    <td class="text-end" t-att-class="diffClass(r.diff)">
-                                        <t t-esc="money(r.diff)"/>
-                                    </td>
+                                    <td class="text-end o_cash_num" t-esc="money(r.official)"/>
+                                    <td class="text-end o_cash_num" t-esc="money(r.real)"/>
+                                    <td class="text-end o_cash_num" t-att-class="diffClass(r.diff)" t-esc="money(r.diff)"/>
                                     <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
                                 </tr>
-                                <tr t-if="!recent.length">
-                                    <td colspan="10" class="o_cash_empty">Sin entradas de caja en el periodo.</td>
-                                </tr>
+                                <tr t-if="!recent.length"><td colspan="10" class="o_cash_empty">Sin entradas de caja en el periodo.</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Salidas de caja recientes -->
                 <div class="o_cash_panel">
-                    <div class="o_cash_panel_head"><h3>Salidas de caja recientes</h3></div>
+                    <div class="o_cash_panel_head">
+                        <div><h3>Salidas de caja recientes</h3><p>Últimas <t t-esc="recentOut.length"/> del periodo</p></div>
+                    </div>
                     <div class="o_cash_table_wrap">
                         <table class="o_cash_table">
                             <thead>
                                 <tr>
-                                    <th>Folio</th>
-                                    <th>Fecha</th>
-                                    <th>Entregado a</th>
-                                    <th>OC</th>
-                                    <th>Concepto</th>
-                                    <th>Responsable</th>
-                                    <th>Div</th>
-                                    <th class="text-end">Monto</th>
-                                    <th/>
+                                    <th>Folio</th><th>Fecha</th><th>Entregado a</th><th>OC</th><th>Concepto</th><th>Responsable</th><th>Div</th>
+                                    <th class="text-end">Monto</th><th/>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr t-foreach="recentOut" t-as="o" t-key="o.id" class="o_cash_row"
-                                    t-on-click="() => this.openDisbursement(o.id)">
-                                    <td><b t-esc="o.name"/></td>
-                                    <td t-esc="o.date"/>
-                                    <td t-esc="o.delivered_to"/>
+                                <tr t-foreach="recentOut" t-as="o" t-key="o.id" class="o_cash_row_click" t-on-click="() => this.openDisbursement(o.id)">
+                                    <td><span class="o_cash_folio o_cash_folio_out" t-esc="o.name"/></td>
+                                    <td class="o_cash_td_muted" t-esc="o.date"/>
+                                    <td class="o_cash_td_strong" t-esc="o.delivered_to"/>
                                     <td t-esc="o.po"/>
-                                    <td t-esc="o.concept"/>
+                                    <td class="o_cash_td_ellipsis" t-att-title="o.concept" t-esc="o.concept"/>
                                     <td t-esc="o.user"/>
                                     <td><span class="o_cash_curtag" t-esc="o.cur"/></td>
-                                    <td class="text-end o_cash_orange_txt"><b>− <t t-esc="money(o.amount)"/></b></td>
+                                    <td class="text-end o_cash_num o_cash_txt_slate"><b>− <t t-esc="money(o.amount)"/></b></td>
                                     <td class="o_cash_go"><i class="fa fa-chevron-right"/></td>
                                 </tr>
-                                <tr t-if="!recentOut.length">
-                                    <td colspan="9" class="o_cash_empty">Sin salidas de caja en el periodo.</td>
-                                </tr>
+                                <tr t-if="!recentOut.length"><td colspan="9" class="o_cash_empty">Sin salidas de caja en el periodo.</td></tr>
                             </tbody>
                         </table>
                     </div>
