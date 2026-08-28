@@ -503,21 +503,8 @@ class CashEntry(models.Model):
         avg_retention = (total_diff / count) if count else 0.0
         avg_ticket = (total_official / count) if count else 0.0
         avg_out = (total_out / len(disbursements)) if disbursements else 0.0
-        # partner.credit = facturado − pagado. Positivo = nos deben; negativo =
-        # el cliente pagó de más / anticipó sin factura (saldo a favor). Se
-        # separan para no netear deudas contra anticipos en una sola cifra.
-        credits = entries.mapped('partner_id').mapped('credit')
-        pending_company = sum(c for c in credits if c > 0)
-        advance_company = sum(-c for c in credits if c < 0)
-        debtors_count = len([c for c in credits if c > 0])
-        advance_count = len([c for c in credits if c < 0])
-        if disp_cur and company_cur and disp_cur != company_cur:
-            today = fields.Date.context_today(self)
-            pending_total = company_cur._convert(pending_company, disp_cur, self.env.company, today)
-            advance_total = company_cur._convert(advance_company, disp_cur, self.env.company, today)
-        else:
-            pending_total = pending_company
-            advance_total = advance_company
+        # La caja es MANUAL e independiente de pedidos y contabilidad: aquí no
+        # se leen cuentas por cobrar ni saldos de clientes (decisión SOM).
         max_r = max(entries, key=lambda r: _val(r), default=None)
         max_receipt = {
             'name': max_r.name, 'value': _val(max_r),
@@ -569,10 +556,6 @@ class CashEntry(models.Model):
                 'with_diff_count': len(with_diff),
                 'shortage': shortage,
                 'overage': overage,
-                'pending_total': pending_total,
-                'advance_total': advance_total,
-                'debtors_count': debtors_count,
-                'advance_count': advance_count,
                 'total_out': total_out,
                 'out_count': len(disbursements),
                 'cash_on_hand': cash_on_hand,
