@@ -1,6 +1,6 @@
 {
     'name': 'Comprobante de Pago en Efectivo',
-    'version': '19.0.6.5.0',
+    'version': '19.0.7.0.0',
     'category': 'Sales',
     'summary': 'Genera recibos de pago en efectivo desde órdenes de venta',
     'description': """
@@ -32,6 +32,7 @@
         'security/ir.model.access.csv',
         'data/sequence_data.xml',
         'data/caja_nacional_data.xml',
+        'data/petty_cash_data.xml',
         'views/cash_receipt_views.xml',
         'views/account_payment_register_views.xml',
         'views/cash_internal_control_views.xml',
@@ -45,6 +46,8 @@
         'reports/cash_entry_control_report.xml',
         'reports/cash_disbursement_report.xml',
         'views/cash_disbursement_views.xml',
+        'views/petty_cash_views.xml',
+        'reports/petty_cash_report.xml',
     ],
     'assets': {
         'web.assets_backend': [
@@ -52,6 +55,9 @@
             'cash_receipt_voucher/static/src/scss/cash_dashboard.scss',
             'cash_receipt_voucher/static/src/js/cash_dashboard/cash_dashboard.js',
             'cash_receipt_voucher/static/src/xml/cash_dashboard.xml',
+            'cash_receipt_voucher/static/src/scss/petty_cash.scss',
+            'cash_receipt_voucher/static/src/js/petty_cash/petty_cash.js',
+            'cash_receipt_voucher/static/src/xml/petty_cash.xml',
         ],
     },
     'installable': True,

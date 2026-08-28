@@ -10,6 +10,7 @@
                 <field name="date"/>
                 <field name="delivered_to"/>
                 <field name="purchase_order_id" optional="show"/>
+                <field name="petty_cash_transfer" string="Caja Chica" optional="show"/>
                 <field name="concept"/>
                 <field name="user_id" widget="many2one_avatar_user"/>
                 <field name="amount" sum="Total"/>
@@ -55,6 +56,9 @@
                             <field name="delivered_to"/>
                             <field name="partner_id"/>
                             <field name="purchase_order_id" options="{'no_create': True}"/>
+                            <field name="petty_cash_transfer" widget="boolean_toggle" readonly="petty_entry_id"/>
+                            <field name="petty_entry_id" invisible="not petty_entry_id"/>
+                            <field name="petty_entry_state" invisible="not petty_entry_id"/>
                             <field name="user_id" widget="many2one_avatar_user"/>
                             <field name="company_id" invisible="1"/>
                         </group>

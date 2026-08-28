@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ===================== MOVIMIENTOS ===================== -->
+    <record id="view_petty_cash_entry_list" model="ir.ui.view">
+        <field name="name">petty.cash.entry.list</field>
+        <field name="model">petty.cash.entry</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'cancelled'" decoration-warning="state == 'pending'"
+                  decoration-danger="entry_type == 'out' and state == 'posted'" default_order="date desc, id desc">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="entry_type" widget="badge" decoration-success="entry_type == 'in'" decoration-danger="entry_type == 'out'"/>
+                <field name="concept"/>
+                <field name="category_id" optional="show"/>
+                <field name="paid_to" optional="show"/>
+                <field name="reference" optional="hide"/>
+                <field name="user_id" widget="many2one_avatar_user" optional="show"/>
+                <field name="amount" sum="Total"/>
+                <field name="signed_amount" string="±" sum="Neto" optional="hide"/>
+                <field name="currency_id" column_invisible="1"/>
+                <field name="has_receipt" widget="boolean" string="Comp." optional="show"/>
+                <field name="state" widget="badge" decoration-success="state == 'posted'"
+                       decoration-warning="state == 'pending'" decoration-danger="state == 'cancelled'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_petty_cash_entry_form" model="ir.ui.view">
+        <field name="name">petty.cash.entry.form</field>
+        <field name="model">petty.cash.entry</field>
+        <field name="arch" type="xml">
+            <form string="Movimiento de Caja Chica">
+                <header>
+                    <button name="action_receive" type="object" string="Recibí el efectivo" class="btn-success"
+                            invisible="state != 'pending'"
+                            confirm="¿Confirmas que recibiste este efectivo en Caja Chica?"/>
+                    <button name="action_cancel" type="object" string="Cancelar con motivo" class="btn-secondary"
+                            invisible="state == 'cancelled'"
+                            groups="cash_receipt_voucher.group_petty_cash_manager,cash_receipt_voucher.group_cash_internal_control_edit"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,posted"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-info" role="alert" invisible="state != 'posted'">
+                        Movimiento registrado: monto, fecha y tipo no se editan. Adjunta el comprobante en el chatter.
+                        Si hubo un error, cancélalo con motivo y captúralo de nuevo.
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="entry_type" widget="radio" options="{'horizontal': true}" readonly="state != 'pending' and id"/>
+                            <field name="amount" readonly="state == 'posted'"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="date" readonly="state == 'posted'"/>
+                            <field name="category_id" invisible="entry_type != 'out'" required="entry_type == 'out'"
+                                   options="{'no_create': True}"/>
+                        </group>
+                        <group>
+                            <field name="concept"/>
+                            <field name="paid_to"/>
+                            <field name="partner_id"/>
+                            <field name="reference"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="received_by" widget="many2one_avatar_user" invisible="not received_by"/>
+                            <field name="disbursement_id" invisible="not disbursement_id"/>
+                            <field name="company_id" invisible="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" nolabel="1" placeholder="Notas u observaciones…"/>
+                    </group>
+                    <group string="Cancelación" invisible="state != 'cancelled'">
+                        <field name="cancel_reason" readonly="1"/>
+                        <field name="cancelled_by" readonly="1"/>
+                        <field name="cancelled_date" readonly="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_petty_cash_entry_search" model="ir.ui.view">
+        <field name="name">petty.cash.entry.search</field>
+        <field name="model">petty.cash.entry</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="concept"/>
+                <field name="paid_to"/>
+                <field name="reference"/>
+                <filter name="posted" string="Registrados" domain="[('state', '=', 'posted')]"/>
+                <filter name="pending" string="Pendientes de recibir" domain="[('state', '=', 'pending')]"/>
+                <filter name="cancelled" string="Cancelados" domain="[('state', '=', 'cancelled')]"/>
+                <separator/>
+                <filter name="ins" string="Ingresos" domain="[('entry_type', '=', 'in')]"/>
+                <filter name="outs" string="Egresos" domain="[('entry_type', '=', 'out')]"/>
+                <separator/>
+                <filter name="this_month" string="Este mes" date="date" default_period="month"/>
+                <filter name="group_category" string="Categoría" context="{'group_by': 'category_id'}"/>
+                <filter name="group_type" string="Tipo" context="{'group_by': 'entry_type'}"/>
+                <filter name="group_month" string="Mes" context="{'group_by': 'date:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_petty_cash_entry" model="ir.actions.act_window">
+        <field name="name">Movimientos de Caja Chica</field>
+        <field name="res_model">petty.cash.entry</field>
+        <field name="view_mode">list,form,pivot</field>
+        <field name="context">{'search_default_posted': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Sin movimientos todavía</p>
+            <p>El primer ingreso llega cuando el Administrador de Efectivo entrega fondo desde la caja principal
+               (Salidas de Caja › "Entrega a Caja Chica"). Confírmalo con "Recibí el efectivo".</p>
+        </field>
+    </record>
+
+    <!-- ===================== CATEGORÍAS ===================== -->
+    <record id="view_petty_cash_category_list" model="ir.ui.view">
+        <field name="name">petty.cash.category.list</field>
+        <field name="model">petty.cash.category</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+    <record id="action_petty_cash_category" model="ir.actions.act_window">
+        <field name="name">Categorías de gasto</field>
+        <field name="res_model">petty.cash.category</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- ===================== WIZARD CANCELAR ===================== -->
+    <record id="view_petty_cash_cancel_wizard" model="ir.ui.view">
+        <field name="name">petty.cash.cancel.wizard.form</field>
+        <field name="model">petty.cash.cancel.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="entry_ids" widget="many2many_tags" readonly="1"/>
+                    <field name="reason" placeholder="Ej. monto capturado con error, ticket duplicado…"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Cancelar movimiento" class="btn-danger"/>
+                    <button string="Cerrar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ===================== PANEL (client action) ===================== -->
+    <record id="action_petty_cash_dashboard" model="ir.actions.client">
+        <field name="name">Caja Chica Operaciones</field>
+        <field name="tag">petty_cash_dashboard</field>
+    </record>
+
+    <!-- App raíz "Caja Chica": para quien SOLO opera caja chica. -->
+    <menuitem id="menu_petty_cash_root"
+              name="Caja Chica"
+              sequence="4"
+              web_icon="cash_receipt_voucher,static/description/icon_caja_chica.svg"
+              groups="cash_receipt_voucher.group_petty_cash_user"/>
+    <menuitem id="menu_petty_cash_panel" name="Panel" parent="menu_petty_cash_root"
+              action="action_petty_cash_dashboard" sequence="10"/>
+    <menuitem id="menu_petty_cash_entries" name="Movimientos" parent="menu_petty_cash_root"
+              action="action_petty_cash_entry" sequence="20"/>
+    <menuitem id="menu_petty_cash_categories" name="Categorías" parent="menu_petty_cash_root"
+              action="action_petty_cash_category" sequence="90"
+              groups="cash_receipt_voucher.group_petty_cash_manager"/>
+
+    <!-- Submenú dentro de "Efectivo": el Administrador de Efectivo entra desde su módulo. -->
+    <menuitem id="menu_efectivo_caja_chica" name="Caja Chica Operaciones"
+              parent="cash_receipt_voucher.menu_efectivo_root" sequence="27"
+              groups="cash_receipt_voucher.group_cash_internal_control"/>
+    <menuitem id="menu_efectivo_caja_chica_panel" name="Panel" parent="menu_efectivo_caja_chica"
+              action="action_petty_cash_dashboard" sequence="10"/>
+    <menuitem id="menu_efectivo_caja_chica_entries" name="Movimientos" parent="menu_efectivo_caja_chica"
+              action="action_petty_cash_entry" sequence="20"/>
+    <menuitem id="menu_efectivo_caja_chica_categories" name="Categorías" parent="menu_efectivo_caja_chica"
+              action="action_petty_cash_category" sequence="30"
+              groups="cash_receipt_voucher.group_cash_internal_control_edit"/>
+
+</odoo>

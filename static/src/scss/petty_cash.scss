@@ -1,0 +1,86 @@
+// Caja Chica Operaciones — panel simple: KPIs + registro + lista.
+$pc-amber: #d97706;
+$pc-amber-dark: #92400e;
+$pc-green: #15803d;
+$pc-red: #b91c1c;
+$pc-ink: #0f172a;
+$pc-muted: #64748b;
+$pc-line: #e2e8f0;
+
+.o_pc {
+    height: 100%; overflow-y: auto; background: #f6f7f9; padding: 0 0 28px;
+    h1, h3, h4 { margin: 0; }
+
+    .o_pc_top {
+        display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+        padding: 14px 22px; background: #fff; border-bottom: 1px solid $pc-line;
+    }
+    .o_pc_brand { display: flex; align-items: center; gap: 12px;
+        h1 { font-size: 1.15rem; font-weight: 800; color: $pc-ink; }
+        p { margin: 0; font-size: .8rem; color: $pc-muted; }
+    }
+    .o_pc_brand_icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: #fff7ed; color: $pc-amber; font-size: 1.2rem; border: 1px solid #fed7aa; }
+    .o_pc_actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .o_pc_chips { display: inline-flex; background: #f1f5f9; border-radius: 10px; padding: 3px; }
+    .o_pc_chip { border: none; background: transparent; padding: 6px 11px; border-radius: 8px; font-size: .82rem; font-weight: 600; color: $pc-muted; cursor: pointer;
+        &.o_active { background: #fff; color: $pc-ink; box-shadow: 0 1px 3px rgba(0,0,0,.12); } }
+    .o_pc_btn { border: 1px solid $pc-line; background: #fff; color: $pc-ink; border-radius: 10px; padding: 7px 12px; font-size: .84rem; font-weight: 600; cursor: pointer;
+        &:hover { background: #f8fafc; } }
+    .o_pc_btn_primary { background: $pc-amber; border-color: $pc-amber; color: #fff; &:hover { background: #b45309; } }
+    .o_pc_btn_success { background: $pc-green; border-color: $pc-green; color: #fff; &:hover { background: #166534; } }
+    .o_pc_custom { display: flex; align-items: center; gap: 8px; padding: 10px 22px; background: #fff; border-bottom: 1px solid $pc-line; font-size: .85rem;
+        input { border: 1px solid $pc-line; border-radius: 8px; padding: 5px 8px; } }
+    .o_pc_loading { display: flex; align-items: center; gap: 10px; padding: 50px; color: $pc-muted; justify-content: center; }
+    .o_pc_spinner { width: 20px; height: 20px; border: 3px solid #fde68a; border-top-color: $pc-amber; border-radius: 50%; animation: o_pc_spin .8s linear infinite; }
+    @keyframes o_pc_spin { to { transform: rotate(360deg); } }
+
+    .o_pc_kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding: 16px 22px 0; }
+    .o_pc_kpi { background: #fff; border: 1px solid $pc-line; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 3px;
+        .o_pc_kpi_label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: $pc-muted; }
+        .o_pc_kpi_value { font-size: 1.5rem; font-weight: 800; color: $pc-ink; }
+        .o_pc_kpi_sub { font-size: .74rem; color: $pc-muted; } }
+    .o_pc_kpi_main { background: linear-gradient(135deg, #78350f, #d97706); border-color: #d97706; color: #fff;
+        .o_pc_kpi_label, .o_pc_kpi_sub { color: rgba(255,255,255,.85); } .o_pc_kpi_value { color: #fff; font-size: 2rem; } }
+    .o_pc_kpi_alert { border-color: #fbbf24; background: #fffbeb; }
+    .o_pc_green { color: $pc-green !important; } .o_pc_red { color: $pc-red !important; } .o_pc_amber { color: $pc-amber-dark !important; }
+
+    .o_pc_card { background: #fff; border: 1px solid $pc-line; border-radius: 14px; padding: 14px 16px; }
+    .o_pc_card_head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px;
+        h3 { font-size: .95rem; font-weight: 800; color: $pc-ink; } span { font-size: .78rem; color: $pc-muted; } }
+    .o_pc_pending { margin: 14px 22px 0; border-color: #fbbf24; background: #fffbeb; }
+    .o_pc_pending_row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #fde68a; font-size: .9rem; }
+    .o_pc_muted { color: $pc-muted; font-size: .78rem; }
+
+    .o_pc_grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 14px; padding: 14px 22px 0; }
+    .o_pc_form { display: flex; flex-direction: column; }
+    .o_pc_seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+    .o_pc_seg_btn { border: 1px solid $pc-line; background: #f8fafc; border-radius: 10px; padding: 9px; font-weight: 700; cursor: pointer; color: $pc-muted;
+        &.out.active { background: #fee2e2; color: $pc-red; border-color: #fca5a5; }
+        &.in.active { background: #dcfce7; color: $pc-green; border-color: #86efac; } }
+    .o_pc_label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: $pc-muted; margin: 8px 0 3px; }
+    .o_pc_input { width: 100%; border: 1px solid $pc-line; border-radius: 10px; padding: 8px 10px; font-size: .9rem; background: #fff;
+        &:focus { outline: none; border-color: $pc-amber; box-shadow: 0 0 0 3px rgba(217,119,6,.15); } }
+    .o_pc_input_big { font-size: 1.5rem; font-weight: 800; text-align: right; }
+    .o_pc_warn { margin-top: 6px; padding: 6px 10px; border-radius: 8px; background: #fee2e2; color: $pc-red; font-size: .8rem; font-weight: 600; }
+    .o_pc_submit { margin-top: 14px; border: none; border-radius: 12px; padding: 13px; font-size: 1rem; font-weight: 800; color: #fff; cursor: pointer;
+        &.out { background: $pc-red; } &.in { background: $pc-green; }
+        &:disabled { opacity: .45; cursor: not-allowed; } }
+    .o_pc_hint { margin-top: 8px; font-size: .74rem; color: $pc-muted; }
+
+    .o_pc_table_scroll { overflow-x: auto; }
+    .o_pc_table { width: 100%; border-collapse: collapse; font-size: .84rem; white-space: nowrap;
+        th { text-align: left; padding: 8px 10px; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: $pc-muted; border-bottom: 1px solid $pc-line; background: #f8fafc; }
+        td { padding: 9px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        tbody tr { cursor: pointer; &:hover td { background: #fff7ed; } }
+        .num { text-align: right; font-variant-numeric: tabular-nums; } }
+    .o_pc_mono { font-family: ui-monospace, Menlo, monospace; font-size: .78rem; }
+    .o_pc_strong { font-weight: 800; color: $pc-ink; }
+    .o_pc_row_pending td { background: #fffbeb; color: $pc-muted; font-style: italic; }
+    .o_pc_tag { margin-left: 6px; font-size: .66rem; font-weight: 800; text-transform: uppercase; background: #fef3c7; color: $pc-amber-dark; padding: 1px 6px; border-radius: 6px; }
+    .o_pc_empty { padding: 30px; text-align: center; color: $pc-muted; }
+    .o_pc_bycat { margin-top: 14px; border-top: 1px solid $pc-line; padding-top: 10px;
+        h4 { font-size: .8rem; font-weight: 800; color: $pc-ink; margin-bottom: 6px; } }
+    .o_pc_bycat_row { display: flex; justify-content: space-between; font-size: .84rem; padding: 3px 0; }
+
+    @media (max-width: 900px) { .o_pc_grid { grid-template-columns: 1fr; } }
+}

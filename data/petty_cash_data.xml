@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="petty_cat_papeleria" model="petty.cash.category"><field name="name">Papelería</field><field name="sequence">10</field></record>
+        <record id="petty_cat_transporte" model="petty.cash.category"><field name="name">Transporte / Gasolina</field><field name="sequence">20</field></record>
+        <record id="petty_cat_alimentos" model="petty.cash.category"><field name="name">Alimentos</field><field name="sequence">30</field></record>
+        <record id="petty_cat_herramienta" model="petty.cash.category"><field name="name">Herramienta / Refacciones</field><field name="sequence">40</field></record>
+        <record id="petty_cat_mensajeria" model="petty.cash.category"><field name="name">Mensajería / Paquetería</field><field name="sequence">50</field></record>
+        <record id="petty_cat_limpieza" model="petty.cash.category"><field name="name">Limpieza</field><field name="sequence">60</field></record>
+        <record id="petty_cat_servicios" model="petty.cash.category"><field name="name">Servicios menores</field><field name="sequence">70</field></record>
+        <record id="petty_cat_otros" model="petty.cash.category"><field name="name">Otros</field><field name="sequence">90</field></record>
+    </data>
+</odoo>

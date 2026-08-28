@@ -41,5 +41,38 @@
                 afectados.</field>
         </record>
 
+
+        <!-- ===================== CAJA CHICA OPERACIONES ===================== -->
+        <record id="module_category_petty_cash" model="ir.module.category">
+            <field name="name">Caja Chica</field>
+            <field name="description">Fondo de caja chica operaciones: recepción de fondos y egresos menores.</field>
+            <field name="sequence">91</field>
+        </record>
+        <record id="privilege_petty_cash" model="res.groups.privilege">
+            <field name="name">Caja Chica</field>
+            <field name="category_id" ref="module_category_petty_cash"/>
+            <field name="sequence">91</field>
+        </record>
+        <!-- Operador: recibe fondos, registra ingresos/egresos, consulta y reportea. -->
+        <record id="group_petty_cash_user" model="res.groups">
+            <field name="name">Operador</field>
+            <field name="privilege_id" ref="privilege_petty_cash"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">Opera la Caja Chica: confirma fondos recibidos, registra egresos e ingresos y consulta el panel.</field>
+        </record>
+        <!-- Responsable: además cancela movimientos con motivo y administra categorías. -->
+        <record id="group_petty_cash_manager" model="res.groups">
+            <field name="name">Responsable</field>
+            <field name="privilege_id" ref="privilege_petty_cash"/>
+            <field name="implied_ids" eval="[(4, ref('group_petty_cash_user'))]"/>
+            <field name="comment">Todo lo del Operador más cancelar movimientos (con motivo) y administrar categorías.</field>
+        </record>
+
+        <record id="petty_cash_entry_company_rule" model="ir.rule">
+            <field name="name">Caja Chica: multi-compañía</field>
+            <field name="model_id" ref="model_petty_cash_entry"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        </record>
+
     </data>
 </odoo>

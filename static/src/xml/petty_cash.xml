@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="cash_receipt_voucher.PettyCashDashboard">
+        <div class="o_pc">
+
+            <!-- Barra superior -->
+            <div class="o_pc_top">
+                <div class="o_pc_brand">
+                    <div class="o_pc_brand_icon"><i class="fa fa-archive"/></div>
+                    <div>
+                        <h1>Caja Chica Operaciones</h1>
+                        <p t-if="state.data">Periodo: <t t-esc="state.data.period_label"/></p>
+                    </div>
+                </div>
+                <div class="o_pc_actions">
+                    <div class="o_pc_chips">
+                        <t t-foreach="periods" t-as="p" t-key="p.key">
+                            <button class="o_pc_chip" t-att-class="{ 'o_active': state.period === p.key }"
+                                    t-on-click="() => this.setPeriod(p.key)"><t t-esc="p.label"/></button>
+                        </t>
+                    </div>
+                    <button class="o_pc_btn" t-on-click="load" title="Actualizar"><i class="fa fa-refresh"/></button>
+                    <button class="o_pc_btn" t-on-click="openList"><i class="fa fa-list"/> Movimientos</button>
+                    <button class="o_pc_btn o_pc_btn_primary" t-on-click="print"><i class="fa fa-file-pdf-o"/> PDF</button>
+                </div>
+            </div>
+            <div class="o_pc_custom" t-if="state.period === 'custom'">
+                <span>Del</span><input type="date" t-model="state.dateFrom"/>
+                <span>al</span><input type="date" t-model="state.dateTo"/>
+                <button class="o_pc_btn o_pc_btn_primary" t-on-click="applyCustom">Aplicar</button>
+            </div>
+
+            <div class="o_pc_loading" t-if="state.loading"><div class="o_pc_spinner"/> Cargando…</div>
+
+            <t t-if="!state.loading and state.data">
+
+                <!-- KPIs -->
+                <div class="o_pc_kpis">
+                    <div class="o_pc_kpi o_pc_kpi_main">
+                        <span class="o_pc_kpi_label">Saldo actual en caja chica</span>
+                        <span class="o_pc_kpi_value" t-esc="money(kpis.balance)"/>
+                        <span class="o_pc_kpi_sub">saldo total registrado (no depende del periodo)</span>
+                    </div>
+                    <div class="o_pc_kpi">
+                        <span class="o_pc_kpi_label">Ingresos del periodo</span>
+                        <span class="o_pc_kpi_value o_pc_green" t-esc="money(kpis.period_in)"/>
+                        <span class="o_pc_kpi_sub">saldo inicial del periodo <t t-esc="money(kpis.initial)"/></span>
+                    </div>
+                    <div class="o_pc_kpi">
+                        <span class="o_pc_kpi_label">Egresos del periodo</span>
+                        <span class="o_pc_kpi_value o_pc_red" t-esc="money(kpis.period_out)"/>
+                        <span class="o_pc_kpi_sub"><t t-esc="kpis.count"/> movimiento(s)</span>
+                    </div>
+                    <div class="o_pc_kpi" t-att-class="{ 'o_pc_kpi_alert': kpis.pending_count }">
+                        <span class="o_pc_kpi_label">Pendiente de recibir</span>
+                        <span class="o_pc_kpi_value o_pc_amber" t-esc="money(kpis.pending_amount)"/>
+                        <span class="o_pc_kpi_sub"><t t-esc="kpis.pending_count"/> entrega(s) de la caja principal</span>
+                    </div>
+                </div>
+
+                <!-- Pendientes de recibir -->
+                <div class="o_pc_card o_pc_pending" t-if="state.data.pending.length">
+                    <div class="o_pc_card_head">
+                        <h3><i class="fa fa-hand-paper-o"/> Fondos por recibir</h3>
+                        <span>Confirma solo cuando tengas el efectivo en la mano</span>
+                    </div>
+                    <t t-foreach="state.data.pending" t-as="p" t-key="p.id">
+                        <div class="o_pc_pending_row">
+                            <div>
+                                <strong t-esc="money(p.amount)"/> · <t t-esc="p.concept"/>
+                                <div class="o_pc_muted">entregó <t t-esc="p.from"/> · <t t-esc="p.date"/> · <t t-esc="p.name"/></div>
+                            </div>
+                            <button class="o_pc_btn o_pc_btn_success" t-on-click="() => this.receive(p.id)">
+                                <i class="fa fa-check"/> Recibí el efectivo
+                            </button>
+                        </div>
+                    </t>
+                </div>
+
+                <div class="o_pc_grid">
+                    <!-- Registro rápido -->
+                    <div class="o_pc_card o_pc_form">
+                        <div class="o_pc_card_head">
+                            <h3><i class="fa fa-pencil"/> Registrar movimiento</h3>
+                        </div>
+                        <div class="o_pc_seg">
+                            <button t-att-class="'o_pc_seg_btn out ' + (formIsOut ? 'active' : '')" t-on-click="() => this.setFormType('out')">
+                                <i class="fa fa-arrow-up"/> Egreso
+                            </button>
+                            <button t-att-class="'o_pc_seg_btn in ' + (!formIsOut ? 'active' : '')" t-on-click="() => this.setFormType('in')">
+                                <i class="fa fa-arrow-down"/> Ingreso
+                            </button>
+                        </div>
+                        <label class="o_pc_label">Monto *</label>
+                        <input type="number" min="0" step="0.01" class="o_pc_input o_pc_input_big" t-model="state.form.amount" placeholder="0.00"/>
+                        <div class="o_pc_warn" t-if="exceedsBalance">
+                            <i class="fa fa-exclamation-triangle"/> Supera el saldo disponible (<t t-esc="money(kpis.balance)"/>). No se podrá registrar.
+                        </div>
+                        <label class="o_pc_label">Concepto *</label>
+                        <input type="text" class="o_pc_input" t-model="state.form.concept"
+                               t-att-placeholder="formIsOut ? 'Ej. Gasolina camioneta, papelería…' : 'Ej. Sobrante devuelto, reembolso…'"/>
+                        <t t-if="formIsOut">
+                            <label class="o_pc_label">Categoría *</label>
+                            <select class="o_pc_input" t-model="state.form.category_id">
+                                <option value="">Elige…</option>
+                                <t t-foreach="state.data.categories" t-as="c" t-key="c.id">
+                                    <option t-att-value="c.id" t-esc="c.name"/>
+                                </t>
+                            </select>
+                        </t>
+                        <label class="o_pc_label"><t t-esc="formIsOut ? 'Pagado a' : 'Recibido de'"/></label>
+                        <input type="text" class="o_pc_input" t-model="state.form.paid_to" placeholder="Persona o negocio"/>
+                        <label class="o_pc_label">Referencia / ticket</label>
+                        <input type="text" class="o_pc_input" t-model="state.form.reference" placeholder="Folio del ticket o nota"/>
+                        <label class="o_pc_label">Notas</label>
+                        <input type="text" class="o_pc_input" t-model="state.form.notes" placeholder="Opcional"/>
+                        <button t-att-class="'o_pc_submit ' + (formIsOut ? 'out' : 'in')"
+                                t-att-disabled="!canSubmit or state.saving or exceedsBalance"
+                                t-on-click="submit">
+                            <i t-att-class="formIsOut ? 'fa fa-minus-circle' : 'fa fa-plus-circle'"/>
+                            <t t-esc="formIsOut ? 'Registrar egreso' : 'Registrar ingreso'"/>
+                        </button>
+                        <div class="o_pc_hint">Después de registrar, abre el movimiento y adjunta la foto del ticket en el chatter.</div>
+                    </div>
+
+                    <!-- Movimientos del periodo -->
+                    <div class="o_pc_card o_pc_table_card">
+                        <div class="o_pc_card_head">
+                            <h3><i class="fa fa-list-ol"/> Movimientos del periodo</h3>
+                            <span>Toca uno para abrirlo / adjuntar comprobante</span>
+                        </div>
+                        <div class="o_pc_table_scroll">
+                            <table class="o_pc_table" t-if="state.data.rows.length">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th><th>Folio</th><th>Concepto</th><th>Categoría</th>
+                                        <th>Pagado a</th><th class="num">Ingreso</th><th class="num">Egreso</th><th class="num">Saldo</th><th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-foreach="state.data.rows" t-as="r" t-key="r.id"
+                                        t-att-class="{ 'o_pc_row_pending': r.state === 'pending' }"
+                                        t-on-click="() => this.openEntry(r.id)">
+                                        <td class="o_pc_muted" t-esc="r.date"/>
+                                        <td class="o_pc_mono" t-esc="r.name"/>
+                                        <td>
+                                            <t t-esc="r.concept"/>
+                                            <span t-if="r.state === 'pending'" class="o_pc_tag">por recibir</span>
+                                        </td>
+                                        <td t-esc="r.category"/>
+                                        <td t-esc="r.paid_to"/>
+                                        <td class="num o_pc_green"><t t-if="r.type === 'in'" t-esc="money(r.amount)"/></td>
+                                        <td class="num o_pc_red"><t t-if="r.type === 'out'" t-esc="money(r.amount)"/></td>
+                                        <td class="num o_pc_strong"><t t-if="r.balance !== null" t-esc="money(r.balance)"/></td>
+                                        <td><i t-if="r.has_receipt" class="fa fa-paperclip" title="Comprobante adjunto"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="o_pc_empty" t-if="!state.data.rows.length">Sin movimientos en este periodo.</div>
+                        </div>
+
+                        <div class="o_pc_bycat" t-if="state.data.by_category.length">
+                            <h4>Egresos por categoría</h4>
+                            <t t-foreach="state.data.by_category" t-as="c" t-key="c.name">
+                                <div class="o_pc_bycat_row"><span t-esc="c.name"/><strong t-esc="money(c.amount)"/></div>
+                            </t>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+
+</templates>

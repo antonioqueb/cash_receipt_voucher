@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_petty_cash_period" model="ir.actions.report">
+        <field name="name">Caja Chica — Reporte del periodo</field>
+        <field name="model">petty.cash.entry</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">cash_receipt_voucher.report_petty_cash_period</field>
+        <field name="report_file">cash_receipt_voucher.report_petty_cash_period</field>
+    </record>
+
+    <template id="report_petty_cash_period">
+        <t t-call="web.html_container">
+            <t t-call="web.internal_layout">
+                <div class="page" style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 10px; color: #000;">
+                    <t t-call="stock_lot_dimensions.som_report_style"/>
+
+                    <div class="row border-bottom pb-2 mb-3" style="border-color:#000 !important;">
+                        <div class="col-8">
+                            <h4 class="som-doc-title mb-0">Caja Chica Operaciones — Reporte del periodo</h4>
+                            <div class="som-small som-muted">Documento interno de control · <span t-esc="company.name"/></div>
+                            <div style="font-size:9.5px; font-weight:700; margin-top:2px;">Periodo: <span t-esc="period_label"/></div>
+                        </div>
+                        <div class="col-4 text-end som-doc-subtitle">Impreso: <span t-esc="printed"/></div>
+                    </div>
+
+                    <table class="som-table" style="margin-bottom:10px; width:60%;">
+                        <tbody>
+                            <tr><td style="width:50%;">Saldo inicial</td><td class="som-num"><span t-esc="initial" t-options='{"widget": "monetary", "display_currency": currency}'/></td></tr>
+                            <tr><td>+ Ingresos del periodo</td><td class="som-num"><span t-esc="total_in" t-options='{"widget": "monetary", "display_currency": currency}'/></td></tr>
+                            <tr><td>− Egresos del periodo</td><td class="som-num" style="color:#b00020;"><span t-esc="total_out" t-options='{"widget": "monetary", "display_currency": currency}'/></td></tr>
+                            <tr style="font-weight:800; background:#f2f2f2;"><td>Saldo final</td><td class="som-num"><span t-esc="final" t-options='{"widget": "monetary", "display_currency": currency}'/></td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="som-section-title">Movimientos</div>
+                    <table class="som-table">
+                        <thead>
+                            <tr>
+                                <th style="width:12%;">Fecha</th>
+                                <th style="width:12%;">Folio</th>
+                                <th style="width:24%;">Concepto</th>
+                                <th style="width:13%;">Categoría</th>
+                                <th style="width:13%;">Pagado a / Recibido de</th>
+                                <th style="width:8%;">Ref.</th>
+                                <th class="som-num" style="width:9%;">Ingreso</th>
+                                <th class="som-num" style="width:9%;">Egreso</th>
+                                <th class="som-num" style="width:10%;">Saldo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="lines" t-as="l">
+                                <t t-set="m" t-value="l['m']"/>
+                                <td><span t-esc="l['date']"/></td>
+                                <td><span t-esc="m.name"/></td>
+                                <td><span t-esc="m.concept"/></td>
+                                <td><span t-esc="m.category_id.name or '-'"/></td>
+                                <td><span t-esc="m.paid_to or '-'"/></td>
+                                <td><span t-esc="m.reference or '-'"/></td>
+                                <td class="som-num"><span t-if="m.entry_type == 'in'" t-esc="m.amount" t-options='{"widget": "monetary", "display_currency": currency}'/></td>
+                                <td class="som-num" style="color:#b00020;"><span t-if="m.entry_type == 'out'" t-esc="m.amount" t-options='{"widget": "monetary", "display_currency": currency}'/></td>
+                                <td class="som-num" style="font-weight:700;"><span t-esc="l['balance']" t-options='{"widget": "monetary", "display_currency": currency}'/></td>
+                            </tr>
+                            <tr t-if="not lines"><td colspan="9" class="text-center som-muted">Sin movimientos en el periodo</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <div class="som-section-title">Egresos por categoría</div>
+                            <table class="som-table">
+                                <tbody>
+                                    <tr t-foreach="by_category" t-as="c">
+                                        <td><span t-esc="c[0]"/></td>
+                                        <td class="som-num"><span t-esc="c[1]" t-options='{"widget": "monetary", "display_currency": currency}'/></td>
+                                    </tr>
+                                    <tr t-if="not by_category"><td colspan="2" class="som-muted">Sin egresos</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-6" t-if="cancelled">
+                            <div class="som-section-title">Cancelados en el periodo</div>
+                            <table class="som-table">
+                                <tbody>
+                                    <tr t-foreach="cancelled" t-as="c">
+                                        <td><span t-esc="c.name"/></td>
+                                        <td><span t-esc="c.concept"/></td>
+                                        <td class="som-num"><span t-esc="c.amount" t-options='{"widget": "monetary", "display_currency": currency}'/></td>
+                                        <td class="som-small som-muted"><span t-esc="c.cancel_reason"/></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-top:36px;">
+                        <div class="col-4 text-center"><div style="border-top:1px solid #000; padding-top:4px;">Responsable de Caja Chica</div></div>
+                        <div class="col-4 text-center"><div style="border-top:1px solid #000; padding-top:4px;">Administrador de Efectivo</div></div>
+                        <div class="col-4 text-center"><div style="border-top:1px solid #000; padding-top:4px;">Revisó</div></div>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
