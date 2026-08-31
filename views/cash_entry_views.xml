@@ -73,7 +73,7 @@
                                    invisible="not internal_adjusted_by"/>
                             <field name="internal_adjusted_date"
                                    invisible="not internal_adjusted_date"/>
-                            <field name="company_id" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                         </group>
                     </group>
                     <group>
@@ -118,6 +118,9 @@
                         context="{'group_by': 'currency_id'}"/>
                 <filter string="Mes" name="group_date"
                         context="{'group_by': 'date:month'}"/>
+                <filter string="Compañía" name="group_company"
+                        context="{'group_by': 'company_id'}"
+                        groups="base.group_multi_company"/>
             </search>
         </field>
     </record>

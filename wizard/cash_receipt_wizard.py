@@ -114,7 +114,10 @@ class CashReceiptWizard(models.TransientModel):
             raise UserError(_(
                 'Este recibo ya fue generado en esta ventana. Ciérrala para continuar.'
             ))
-        receipt = self.env['cash.receipt'].create({
+        # Compañía del recibo = la del pedido (no la activa del usuario).
+        company = self.sale_order_ids[:1].company_id or self.company_id or self.env.company
+        receipt = self.env['cash.receipt'].with_company(company).create({
+            'company_id': company.id,
             'partner_id': self.partner_id.id,
             'sale_order_ids': [(6, 0, self.sale_order_ids.ids)],
             'amount': self.amount,

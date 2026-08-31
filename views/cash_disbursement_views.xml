@@ -60,7 +60,7 @@
                             <field name="petty_entry_id" invisible="not petty_entry_id"/>
                             <field name="petty_entry_state" invisible="not petty_entry_id"/>
                             <field name="user_id" widget="many2one_avatar_user"/>
-                            <field name="company_id" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                         </group>
                     </group>
                     <group>

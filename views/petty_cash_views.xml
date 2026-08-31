@@ -65,7 +65,7 @@
                             <field name="user_id" widget="many2one_avatar_user"/>
                             <field name="received_by" widget="many2one_avatar_user" invisible="not received_by"/>
                             <field name="disbursement_id" invisible="not disbursement_id"/>
-                            <field name="company_id" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                         </group>
                     </group>
                     <group>
@@ -102,6 +102,7 @@
                 <filter name="group_category" string="Categoría" context="{'group_by': 'category_id'}"/>
                 <filter name="group_type" string="Tipo" context="{'group_by': 'entry_type'}"/>
                 <filter name="group_month" string="Mes" context="{'group_by': 'date:month'}"/>
+                <filter name="group_company" string="Compañía" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
             </search>
         </field>
     </record>

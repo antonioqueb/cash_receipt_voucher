@@ -217,6 +217,8 @@ class CashEntry(models.Model):
             if not r:
                 continue
             rec.partner_id = r.partner_id
+            if r.company_id:
+                rec.company_id = r.company_id
             rec.sale_order_ids = [(6, 0, r.sale_order_ids.ids)]
             rec.currency_id = r.currency_id
             rec.amount = r.amount
@@ -264,10 +266,22 @@ class CashEntry(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         can_adjust = self._can_adjust_internal()
+        Receipt = self.env['cash.receipt']
         for vals in vals_list:
+            # Compañía = la del recibo o del pedido asociado (no la activa).
+            if not vals.get('company_id'):
+                company = False
+                if vals.get('receipt_id'):
+                    company = Receipt.browse(vals['receipt_id']).sudo().company_id
+                if not company:
+                    company = Receipt._som_company_from_orders(vals)
+                if company:
+                    vals['company_id'] = company.id
+            company = (self.env['res.company'].browse(vals['company_id'])
+                       if vals.get('company_id') else self.env.company)
             if vals.get('name', _('Nuevo')) == _('Nuevo'):
-                vals['name'] = self.env['ir.sequence'].next_by_code(
-                    'cash.entry') or _('Nuevo')
+                vals['name'] = Receipt._som_next_sequence(
+                    'cash.entry', company) or _('Nuevo')
             if vals.get('amount_internal') in (None, False):
                 vals['amount_internal'] = vals.get('amount', 0.0)
             elif not can_adjust:
@@ -344,7 +358,9 @@ class CashEntry(models.Model):
 
     @api.model
     def _period_domain(self, df, dt):
-        domain = [('state', '!=', 'cancelled')]
+        # Dashboard/reportes: compañías seleccionadas en el switcher.
+        domain = [('state', '!=', 'cancelled'),
+                  ('company_id', 'in', self.env.companies.ids)]
         if df:
             domain.append(('date', '>=', fields.Datetime.to_string(
                 datetime.combine(df, time.min))))

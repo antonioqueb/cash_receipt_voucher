@@ -177,7 +177,9 @@ class PettyCashEntry(models.Model):
         for vals in vals_list:
             if vals.get('name', '/') == '/':
                 code = 'petty.cash.in' if vals.get('entry_type', 'out') == 'in' else 'petty.cash.out'
-                vals['name'] = self.env['ir.sequence'].next_by_code(code) or '/'
+                company = (self.env['res.company'].browse(vals['company_id'])
+                           if vals.get('company_id') else self.env.company)
+                vals['name'] = self.env['cash.receipt']._som_next_sequence(code, company) or '/'
         recs = super().create(vals_list)
         for rec in recs.filtered(lambda r: r.state == 'posted'):
             rec._log_posted()

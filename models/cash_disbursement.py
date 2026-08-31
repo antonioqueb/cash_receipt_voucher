@@ -100,6 +100,13 @@ class CashDisbursement(models.Model):
             else:
                 rec.amount_mxn = rec.amount or 0.0
 
+    @api.onchange('purchase_order_id')
+    def _onchange_purchase_order_company(self):
+        for rec in self:
+            po_company = rec.purchase_order_id.company_id
+            if po_company and rec.company_id != po_company:
+                rec.company_id = po_company
+
     @api.constrains('amount')
     def _check_amount_positive(self):
         for rec in self:
@@ -110,9 +117,16 @@ class CashDisbursement(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            # Compañía = la de la orden de compra ligada (no la activa).
+            if not vals.get('company_id') and vals.get('purchase_order_id'):
+                po = self.env['purchase.order'].browse(vals['purchase_order_id']).sudo()
+                if po.company_id:
+                    vals['company_id'] = po.company_id.id
+            company = (self.env['res.company'].browse(vals['company_id'])
+                       if vals.get('company_id') else self.env.company)
             if vals.get('name', _('Nuevo')) == _('Nuevo'):
-                vals['name'] = self.env['ir.sequence'].next_by_code(
-                    'cash.disbursement') or _('Nuevo')
+                vals['name'] = self.env['cash.receipt']._som_next_sequence(
+                    'cash.disbursement', company) or _('Nuevo')
         return super().create(vals_list)
 
     def action_cancel(self):

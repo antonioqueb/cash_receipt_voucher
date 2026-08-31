@@ -301,15 +301,58 @@ class CashReceipt(models.Model):
                     rec.amount_internal, origin_amount, rec.currency_id):
                 rec.amount_internal = rec.amount
 
+    # ------------------------------------------------------------------
+    # Multiempresa: folio y compañía del documento
+    # ------------------------------------------------------------------
+    @api.model
+    def _som_next_sequence(self, code, company=None):
+        """next_by_code con la compañía del documento; si la compañía no tiene
+        secuencia propia y la plantilla es de otra compañía, se clona para ella."""
+        company = company or self.env.company
+        Seq = self.env['ir.sequence'].sudo()
+        name = Seq.with_company(company).next_by_code(code)
+        if name:
+            return name
+        template = Seq.search([('code', '=', code)], order='company_id', limit=1)
+        if not template:
+            return False
+        template.copy({
+            'company_id': company.id,
+            'number_next': 1,
+            'name': '%s (%s)' % (template.name, company.name),
+        })
+        return Seq.with_company(company).next_by_code(code)
+
+    @api.model
+    def _som_company_from_orders(self, vals):
+        """Compañía de los pedidos asociados (comando 6/4 del M2M), o False."""
+        order_ids = []
+        for cmd in vals.get('sale_order_ids') or []:
+            if isinstance(cmd, (list, tuple)) and cmd:
+                if cmd[0] == 6:
+                    order_ids += list(cmd[2] or [])
+                elif cmd[0] == 4:
+                    order_ids.append(cmd[1])
+        if not order_ids:
+            return False
+        return self.env['sale.order'].browse(order_ids[0]).sudo().company_id
+
     @api.model_create_multi
     def create(self, vals_list):
         can_adjust = self._can_adjust_internal()
         for vals in vals_list:
+            # Compañía = la del pedido asociado (no la activa del usuario).
+            if not vals.get('company_id'):
+                company = self._som_company_from_orders(vals)
+                if company:
+                    vals['company_id'] = company.id
+            company = (self.env['res.company'].browse(vals['company_id'])
+                       if vals.get('company_id') else self.env.company)
             # SIN candado anti-duplicados: los pagos parciales legítimos por
             # el mismo monto (dos recibos de 50k sobre un pedido de 100k) son
             # operación normal. El control vive en el PAGO formal, no aquí.
             if vals.get('name', _('Nuevo')) == _('Nuevo'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('cash.receipt') or _('Nuevo')
+                vals['name'] = self._som_next_sequence('cash.receipt', company) or _('Nuevo')
             # Espejo por defecto: el efectivo real arranca igual al oficial.
             if vals.get('amount_internal') in (None, False):
                 vals['amount_internal'] = vals.get('amount', 0.0)
@@ -569,6 +612,10 @@ class CashReceipt(models.Model):
                         }
                     }
             self.partner_id = partners[0]
+            # Compañía del recibo = la del pedido.
+            order_company = self.sale_order_ids[0].company_id
+            if order_company and self.company_id != order_company:
+                self.company_id = order_company
             # Sugerir el monto total pendiente
             if not self.amount:
                 self.amount = sum(self.sale_order_ids.mapped('amount_total'))

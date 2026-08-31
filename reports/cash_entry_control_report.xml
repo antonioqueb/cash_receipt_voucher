@@ -38,7 +38,7 @@
                     <t t-set="total_official" t-value="0.0"/>
                     <t t-set="total_real" t-value="0.0"/>
                     <t t-set="total_diff" t-value="0.0"/>
-                    <t t-set="rep_currency" t-value="mxn_cur if consolidated else (docs[:1].currency_id or env.company.currency_id)"/>
+                    <t t-set="rep_currency" t-value="mxn_cur if consolidated else (docs[:1].currency_id or docs[:1].company_id.currency_id or env.company.currency_id)"/>
 
                     <table class="som-table">
                         <thead>

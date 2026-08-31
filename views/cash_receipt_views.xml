@@ -94,7 +94,7 @@
                             <field name="is_fully_paid" invisible="1"/>
                             <field name="receipt_count" string="Otros Recibos"/>
                             <field name="payment_id" readonly="1" groups="account.group_account_invoice"/>
-                            <field name="company_id" invisible="1"/>
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                             <field name="has_internal_diff" invisible="1"/>
                         </group>
                     </group>
@@ -217,6 +217,9 @@
                             context="{'group_by': 'state'}"/>
                     <filter string="Fecha" name="group_date"
                             context="{'group_by': 'date:month'}"/>
+                    <filter string="Compañía" name="group_company"
+                            context="{'group_by': 'company_id'}"
+                            groups="base.group_multi_company"/>
             </search>
         </field>
     </record>
