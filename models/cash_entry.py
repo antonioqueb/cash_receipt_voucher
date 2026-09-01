@@ -14,6 +14,7 @@ from collections import OrderedDict
 from datetime import timedelta, datetime, time
 
 from dateutil.relativedelta import relativedelta
+import pytz
 
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError, ValidationError, AccessError
@@ -357,16 +358,33 @@ class CashEntry(models.Model):
         return start, start + relativedelta(months=1, days=-1)
 
     @api.model
+    def _period_bounds_utc(self, df, dt):
+        """Límites del periodo [df, dt] tomados como días COMPLETOS en la zona
+        horaria del usuario y convertidos a UTC naive (como Odoo guarda los
+        Datetime). Antes se comparaba la fecha local como si fuera UTC, y en
+        Monterrey (UTC-6) todo lo capturado después de las 18:00 caía en el
+        día siguiente: el último día del mes (o "Hoy") no sumaba las entradas
+        de la tarde y el dashboard "no se movía"."""
+        tz = pytz.timezone(self.env.user.tz or 'America/Mexico_City')
+
+        def _to_utc(d, t):
+            return tz.localize(datetime.combine(d, t)).astimezone(
+                pytz.utc).replace(tzinfo=None)
+
+        start = _to_utc(df, time.min) if df else None
+        end = _to_utc(dt, time.max) if dt else None
+        return start, end
+
+    @api.model
     def _period_domain(self, df, dt):
         # Dashboard/reportes: compañías seleccionadas en el switcher.
         domain = [('state', '!=', 'cancelled'),
                   ('company_id', 'in', self.env.companies.ids)]
-        if df:
-            domain.append(('date', '>=', fields.Datetime.to_string(
-                datetime.combine(df, time.min))))
-        if dt:
-            domain.append(('date', '<=', fields.Datetime.to_string(
-                datetime.combine(dt, time.max))))
+        start, end = self._period_bounds_utc(df, dt)
+        if start:
+            domain.append(('date', '>=', fields.Datetime.to_string(start)))
+        if end:
+            domain.append(('date', '<=', fields.Datetime.to_string(end)))
         return domain
 
     @api.model
