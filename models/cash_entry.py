@@ -426,9 +426,17 @@ class CashEntry(models.Model):
         total_real = sum(_valint(r) for r in entries)
         total_diff = total_official - total_real
         total_out = sum(_val_out(o) for o in disbursements)
-        # SALDO DE CAJA = ENTRADAS − SALIDAS. La caja es manual e
-        # independiente: lo depositado a cuenta ya no participa del saldo.
-        cash_on_hand = total_official - total_out
+        # SALDO DE CAJA = ACUMULADO AL DÍA: todo lo registrado hasta el
+        # final del periodo, SIN el filtro de inicio. El saldo no se
+        # reinicia el 1° de cada mes (con el filtro "mes" salía 0 el
+        # primer día). Entradas/Salidas sí son cifras del periodo. La caja
+        # es manual e independiente: lo depositado a cuenta no participa.
+        all_entries = self.search(self._period_domain(None, dt) + cur_domain)
+        all_out = self.env['cash.disbursement'].search(
+            self._period_domain(None, dt) + cur_domain)
+        cash_in_all = sum(_val(r) for r in all_entries)
+        cash_out_all = sum(_val_out(o) for o in all_out)
+        cash_on_hand = cash_in_all - cash_out_all
         with_diff = entries.filtered(lambda r: abs(_en_caja(r)) > 0.001)
         shortage = sum(_en_caja(r) for r in entries if _en_caja(r) > 0)
         overage = sum(-_en_caja(r) for r in entries if _en_caja(r) < 0)
@@ -593,6 +601,8 @@ class CashEntry(models.Model):
                 'total_out': total_out,
                 'out_count': len(disbursements),
                 'cash_on_hand': cash_on_hand,
+                'cash_in_all': cash_in_all,
+                'cash_out_all': cash_out_all,
             },
             'recent_out': recent_out,
             'max_receipt': max_receipt,

@@ -59,8 +59,8 @@
                             <div class="o_cash_kpi_meter_in" t-attf-style="width: {{ flowDonut.pIn }}%"/>
                         </div>
                         <div class="o_cash_kpi_foot">
-                            <span><i class="o_dot o_dot_gold"/> entradas <b t-esc="money(kpis.total_official)"/></span>
-                            <span><i class="o_dot o_dot_slate"/> salidas <b t-esc="money(kpis.total_out)"/></span>
+                            <span><i class="o_dot o_dot_gold"/> entradas acum. <b t-esc="money(kpis.cash_in_all)"/></span>
+                            <span><i class="o_dot o_dot_slate"/> salidas acum. <b t-esc="money(kpis.cash_out_all)"/></span>
                         </div>
                     </div>
 
