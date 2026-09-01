@@ -46,8 +46,9 @@
                                     <tr>
                                         <!-- CLIENTE -->
                                         <td style="vertical-align: top; padding: 6px 8px; border: 1px solid #d8d8d8 !important; overflow-wrap: anywhere; word-break: break-word;">
-                                            <span style="font-weight: bold; font-size: 11px;" t-field="doc.partner_id.name"/>
-                                            <span t-if="doc.partner_id.vat" style="display: block; font-size: 8.5px; color: #555; margin-top: 2px;">RFC: <span t-field="doc.partner_id.vat"/></span>
+                                            <t t-set="som_mask" t-value="(doc.sale_order_ids.filtered('x_partner_mask_name')[:1].x_partner_mask_name)"/>
+                                            <span style="font-weight: bold; font-size: 11px;" t-esc="som_mask or doc.partner_id.name"/>
+                                            <span t-if="doc.partner_id.vat and not som_mask" style="display: block; font-size: 8.5px; color: #555; margin-top: 2px;">RFC: <span t-field="doc.partner_id.vat"/></span>
                                             <span t-if="doc.partner_id.street" style="display: block; font-size: 9px; color: #333; margin-top: 3px; line-height: 1.25;">
                                                 <span t-field="doc.partner_id.street"/><t t-if="doc.partner_id.city">, <span t-field="doc.partner_id.city"/></t><t t-if="doc.partner_id.state_id">, <span t-field="doc.partner_id.state_id.name"/></t>
                                             </span>

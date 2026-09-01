@@ -66,7 +66,7 @@
                                     <td><strong t-field="doc.name"/></td>
                                     <td><span t-esc="', '.join(doc.sale_order_ids.mapped('name'))"/></td>
                                     <td><span t-esc="doc.receipt_id.name or ''"/></td>
-                                    <td><span t-esc="doc.partner_id.name or doc.received_from or ''"/></td>
+                                    <td><span t-esc="(doc.sale_order_ids.filtered('x_partner_mask_name')[:1].x_partner_mask_name) or doc.partner_id.name or doc.received_from or ''"/></td>
                                     <td><span t-field="doc.date" t-options="{'format': 'dd MMM yyyy'}"/></td>
                                     <td class="som-num">
                                         <span t-esc="r_official" t-options="{'widget': 'monetary', 'display_currency': r_cur}"/>
