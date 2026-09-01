@@ -31,8 +31,9 @@ export class CashDashboard extends Component {
         this.state = useState({
             loading: true,
             printing: false,
-            period: "month",
-            currencyMode: "all_mxn",
+            // Por defecto: AÑO en curso y solo MXN (pedido del cliente, 1 sep 2026).
+            period: "year",
+            currencyMode: "mxn",
             dateFrom: "",
             dateTo: "",
             data: null,
