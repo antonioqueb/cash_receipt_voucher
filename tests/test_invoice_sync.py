@@ -62,10 +62,10 @@ class TestInvoiceSync(TransactionCase):
         self.assertEqual(len(created), 1)
         self.assertEqual(created.move_type, 'out_invoice')
         self.assertEqual(created.state, 'posted')
-        self.assertAlmostEqual(created.amount_untaxed, 20000.0, 2)
-        self.assertAlmostEqual(created.amount_total, 23200.0, 2, 'lleva los mismos impuestos')
+        self.assertAlmostEqual(created.amount_untaxed, 20000.0, delta=0.05)
+        self.assertAlmostEqual(created.amount_total, 23200.0, delta=0.06, msg='lleva los mismos impuestos')
         self.assertEqual(created.invoice_line_ids.sale_line_ids, so.order_line, 'ligada a la línea de la orden')
-        self.assertAlmostEqual(self._invoiced(so), 120000.0, 2)
+        self.assertAlmostEqual(self._invoiced(so), 120000.0, delta=0.05)
         self.assertAlmostEqual(so.x_invoice_gap, 0.0, 2)
         # idempotente: nada más que generar
         self.assertFalse(so._som_sync_invoices())

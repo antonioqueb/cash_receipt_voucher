@@ -14,24 +14,32 @@ diferencia, sin tocar nunca lo ya pagado:
   a favor del cliente.
 La diferencia se calcula LÍNEA POR LÍNEA (importe sin IVA): cada línea de la
 orden contra lo que ya tiene facturado (facturas menos notas de crédito).
-La línea de ajuste se expresa como cantidad al precio vigente de la línea,
-así la cantidad facturada nativa de Odoo sigue cuadrando.
+La línea de ajuste se expresa como cantidad al precio vigente de la línea
+(redondeada a la precisión de la unidad; el precio se ajusta para que
+cantidad × precio sea exactamente la diferencia), así la cantidad
+facturada nativa de Odoo sigue cuadrando. Diferencias menores a $1 se
+ignoran (redondeos).
 
-Cuándo corre: al guardar cambios en una orden confirmada (una sola vez al
-final de la transacción), al aplicar un pago desde la orden, con el botón
-"Alinear facturas con la orden" y con un cron diario de respaldo. Si una
-factura tiene líneas que no se pueden atribuir a la orden, NO se genera
-nada: se avisa y se deja para revisión (jamás adivinar con dinero).
+Cuándo corre: al guardar cambios en una orden confirmada (al final del
+write, con guardia de reentrada), al aplicar un pago desde la orden, con
+el botón "Alinear facturas con la orden" y con un cron diario de respaldo.
+NO se usa cr.precommit: Odoo lo dispara en cada flush intermedio y generaba
+documentos duplicados. Si una factura tiene líneas que no se pueden
+atribuir a la orden, NO se genera nada: se avisa y se deja para revisión
+(jamás adivinar con dinero).
 """
 import logging
 from collections import defaultdict
 
 from odoo import api, fields, models, Command, _
+from odoo.tools import float_round
 
 _logger = logging.getLogger(__name__)
 
 SYNC_LINE_FIELDS = {'price_unit', 'product_uom_qty', 'discount', 'tax_id', 'tax_ids', 'product_id'}
 SYNC_ORDER_FIELDS = {'order_line', 'pricelist_id', 'fiscal_position_id', 'partner_invoice_id'}
+# Diferencias menores a esto (moneda de la orden) son redondeos, no faltantes.
+SYNC_TOLERANCE = 1.0
 
 
 class SaleOrder(models.Model):
@@ -83,7 +91,8 @@ class SaleOrder(models.Model):
                             sls = cands
                         else:
                             return [], _('La factura %s tiene la línea "%s" sin liga a una línea de '
-                                         'la orden; revísala antes de alinear.') % (inv.name, il.name or il.product_id.display_name)
+                                         'la orden; revísala antes de alinear.') % (
+                                inv.name, (il.name or il.product_id.display_name or '').split('\n')[0])
                     else:
                         continue
                 amt = il.price_subtotal
@@ -93,7 +102,7 @@ class SaleOrder(models.Model):
         deltas = []
         for line in so.order_line.filtered(lambda l: not l.display_type):
             d = cur.round((line.price_subtotal or 0.0) - invoiced.get(line.id, 0.0))
-            if not cur.is_zero(d):
+            if abs(d) >= SYNC_TOLERANCE:
                 deltas.append((line, d))
         return deltas, ''
 
@@ -115,61 +124,92 @@ class SaleOrder(models.Model):
     # ------------------------------------------------------------------
     def _som_prepare_delta_line(self, line, amount):
         """Línea de ajuste: la diferencia (sin IVA, positiva) expresada como
-        cantidad al precio vigente de la línea, con sus mismos impuestos."""
+        cantidad al precio vigente de la línea, con sus mismos impuestos. La
+        cantidad se redondea a la precisión de la unidad y, si hace falta,
+        el precio se ajusta para que cantidad × precio = diferencia."""
         vals = line._prepare_invoice_line()
-        unit = (line.price_unit or 0.0) * (1.0 - (line.discount or 0.0) / 100.0)
-        if unit:
-            vals.update({'quantity': amount / unit, 'price_unit': line.price_unit,
-                         'discount': line.discount or 0.0})
+        disc = (line.discount or 0.0) / 100.0
+        unit = (line.price_unit or 0.0) * (1.0 - disc)
+        uom = line.product_uom_id if 'product_uom_id' in line._fields else getattr(line, 'product_uom', False)
+        rounding = (uom.rounding if uom and uom.rounding else 0.01)
+        qty = float_round(amount / unit, precision_rounding=rounding) if unit else 0.0
+        if unit and qty > 0:
+            price = line.price_unit
+            if abs(qty * unit - amount) > 0.005:
+                price = amount / qty / (1.0 - disc) if disc < 1.0 else amount / qty
+            vals.update({'quantity': qty, 'price_unit': price, 'discount': line.discount or 0.0})
         else:
             vals.update({'quantity': 1.0, 'price_unit': amount, 'discount': 0.0})
-        vals['name'] = '%s\n(Ajuste a la orden %s)' % (vals.get('name') or line.name or line.product_id.display_name, line.order_id.name)
+        base_name = (vals.get('name') or line.name or line.product_id.display_name or '').split('\n')[0]
+        vals['name'] = '%s\n(Ajuste a la orden %s)' % (base_name, line.order_id.name)
         vals['sale_line_ids'] = [Command.link(line.id)]
         return vals
 
     def _som_sync_invoices(self, force=False):
         """Genera los documentos de diferencia de cada orden. Devuelve los
-        asientos creados. Nunca toca facturas ni pagos existentes."""
+        asientos creados. Nunca toca facturas ni pagos existentes.
+        Con guardia de reentrada: mientras una orden se está alineando,
+        cualquier disparo anidado sobre ella se ignora."""
         Move = self.env['account.move'].sudo()
         created = Move
+        running = self.env.cr.precommit.data.setdefault('som_invoice_sync_running', set())
         for so in self.sudo():
+            if so.id in running:
+                continue
             if so.state != 'sale' or (not force and not so.x_invoice_sync):
                 continue
             if not so._som_posted_customer_invoices():
                 continue  # la primera factura la crea el flujo de pago (nativa)
+            running.add(so.id)
+            try:
+                created |= so.with_context(som_skip_invoice_sync=True)._som_sync_one()
+            finally:
+                running.discard(so.id)
+        return created
+
+    def _som_sync_one(self):
+        self.ensure_one()
+        so = self
+        Move = self.env['account.move'].sudo()
+        created = Move
+        try:
             deltas, note = so._som_invoice_deltas()
-            if note:
-                so._som_sync_warn(note)
+        except Exception as exc:  # noqa: BLE001
+            so._som_sync_warn(_('No se pudo calcular la diferencia: %s') % str(exc)[:200])
+            return created
+        if note:
+            so._som_sync_warn(note)
+            return created
+        if not deltas:
+            return created
+        docs = {'out_invoice': [(l, d) for l, d in deltas if d > 0],
+                'out_refund': [(l, -d) for l, d in deltas if d < 0]}
+        for move_type, items in docs.items():
+            if not items:
                 continue
-            if not deltas:
-                continue
-            docs = {'out_invoice': [(l, d) for l, d in deltas if d > 0],
-                    'out_refund': [(l, -d) for l, d in deltas if d < 0]}
-            for move_type, items in docs.items():
-                if not items:
-                    continue
-                try:
-                    with self.env.cr.savepoint():
-                        vals = so._prepare_invoice()
-                        vals.update({
-                            'move_type': move_type,
-                            'invoice_date': fields.Date.context_today(self),
-                            'invoice_line_ids': [Command.create(so._som_prepare_delta_line(l, amt)) for l, amt in items],
-                        })
-                        move = Move.with_company(so.company_id).with_context(som_skip_invoice_sync=True).create(vals)
-                        move.action_post()
-                        created |= move
-                        total = sum(amt for _l, amt in items)
-                        so.message_post(
-                            body=_('%(kind)s %(name)s publicada automáticamente por %(amount)s (sin IVA) para '
-                                   'alinear lo facturado con la orden.') % {
-                                'kind': 'Factura complementaria' if move_type == 'out_invoice' else 'Nota de crédito',
-                                'name': move.name, 'amount': '%s %s' % (so.currency_id.symbol or '', '{:,.2f}'.format(total))},
-                            message_type='notification')
-                        _logger.info('[FACTURA=ORDEN] %s: %s %s por %.2f', so.name, move_type, move.name, total)
-                except Exception as exc:  # noqa: BLE001 - jamás romper el guardado de la orden
-                    _logger.exception('[FACTURA=ORDEN] %s: no se pudo generar %s', so.name, move_type)
-                    so._som_sync_warn(_('No se pudo generar el documento de ajuste (%s): %s') % (move_type, str(exc)[:200]))
+            try:
+                with self.env.cr.savepoint(flush=False):
+                    vals = so._prepare_invoice()
+                    vals.update({
+                        'move_type': move_type,
+                        'invoice_date': fields.Date.context_today(self),
+                        'invoice_line_ids': [Command.create(so._som_prepare_delta_line(l, amt)) for l, amt in items],
+                    })
+                    move = Move.with_company(so.company_id).create(vals)
+                    move.action_post()
+                    created |= move
+                    total = sum(amt for _l, amt in items)
+                    so.message_post(
+                        body=_('%(kind)s %(name)s publicada automáticamente por %(amount)s (sin IVA) para '
+                               'alinear lo facturado con la orden.') % {
+                            'kind': 'Factura complementaria' if move_type == 'out_invoice' else 'Nota de crédito',
+                            'name': move.name,
+                            'amount': '%s %s' % (so.currency_id.symbol or '', '{:,.2f}'.format(total))},
+                        message_type='notification')
+                    _logger.info('[FACTURA=ORDEN] %s: %s %s por %.2f', so.name, move_type, move.name, total)
+            except Exception as exc:  # noqa: BLE001 - jamás romper el guardado de la orden
+                _logger.exception('[FACTURA=ORDEN] %s: no se pudo generar %s', so.name, move_type)
+                so._som_sync_warn(_('No se pudo generar el documento de ajuste (%s): %s') % (move_type, str(exc)[:200]))
         return created
 
     def _som_sync_warn(self, note):
@@ -198,36 +238,23 @@ class SaleOrder(models.Model):
         }
 
     # ------------------------------------------------------------------
-    # Disparadores: una sola vez al final de la transacción
+    # Disparadores: al final de cada write (con guardia de reentrada)
     # ------------------------------------------------------------------
-    def _som_schedule_invoice_sync(self):
+    def _som_sync_after_change(self):
         if self.env.context.get('som_skip_invoice_sync'):
             return
-        ids = {s.id for s in self if isinstance(s.id, int)}
-        if not ids:
+        orders = self.filtered(lambda s: s.state == 'sale' and isinstance(s.id, int))
+        if not orders:
             return
-        cr = self.env.cr
-        data = cr.precommit.data.setdefault('som_invoice_sync', {'ids': set(), 'registered': False})
-        data['ids'] |= ids
-        if data['registered']:
-            return
-        data['registered'] = True
-        env = self.env
-
-        @cr.precommit.add
-        def _som_run_invoice_sync():
-            order_ids = list(data['ids'])
-            data['ids'] = set()
-            data['registered'] = False
-            try:
-                env['sale.order'].browse(order_ids).exists().sudo()._som_sync_invoices()
-            except Exception:  # noqa: BLE001
-                _logger.exception('[FACTURA=ORDEN] alineación diferida falló para %s', order_ids)
+        try:
+            orders._som_sync_invoices()
+        except Exception:  # noqa: BLE001 - jamás bloquear el guardado
+            _logger.exception('[FACTURA=ORDEN] alineación tras cambio falló para %s', orders.mapped('name'))
 
     def write(self, vals):
         res = super().write(vals)
         if SYNC_ORDER_FIELDS & set(vals):
-            self.filtered(lambda s: s.state == 'sale')._som_schedule_invoice_sync()
+            self._som_sync_after_change()
         return res
 
     @api.model
@@ -246,17 +273,17 @@ class SaleOrderLine(models.Model):
     def write(self, vals):
         res = super().write(vals)
         if SYNC_LINE_FIELDS & set(vals):
-            self.mapped('order_id').filtered(lambda s: s.state == 'sale')._som_schedule_invoice_sync()
+            self.mapped('order_id')._som_sync_after_change()
         return res
 
     @api.model_create_multi
     def create(self, vals_list):
         lines = super().create(vals_list)
-        lines.mapped('order_id').filtered(lambda s: s.state == 'sale')._som_schedule_invoice_sync()
+        lines.mapped('order_id')._som_sync_after_change()
         return lines
 
     def unlink(self):
-        orders = self.mapped('order_id').filtered(lambda s: s.state == 'sale')
+        orders = self.mapped('order_id')
         res = super().unlink()
-        orders._som_schedule_invoice_sync()
+        orders.exists()._som_sync_after_change()
         return res
