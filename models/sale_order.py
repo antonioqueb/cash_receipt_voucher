@@ -23,6 +23,14 @@ class SaleOrder(models.Model):
                 and m.payment_state in ('not_paid', 'partial')
             )
 
+        # La factura debe representar la orden ANTES de cobrar: si la orden
+        # cambió desde que se facturó, aquí se genera la factura
+        # complementaria (o la nota de crédito) para que el pago tenga
+        # exactamente qué cubrir.
+        if self.state in ('sale', 'done') and self._som_posted_customer_invoices():
+            self.sudo()._som_sync_invoices(force=True)
+            self.invalidate_recordset(['invoice_ids'])
+
         invoices = _pending(self.invoice_ids)
 
         if not invoices:
@@ -40,7 +48,7 @@ class SaleOrder(models.Model):
                 try:
                     # Sin skip_auth_check: los candados de autorización
                     # (descuentos/precios) siguen aplicando.
-                    drafts = self._create_invoices(final=True)
+                    drafts = self.with_context(som_skip_invoice_sync=True)._create_invoices(final=True)
                 except UserError:
                     raise
                 except Exception as exc:

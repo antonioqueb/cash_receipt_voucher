@@ -3,6 +3,7 @@ from . import account_journal
 from . import cash_entry
 from . import cash_receipt
 from . import sale_order
+from . import sale_order_invoice_sync
 from . import cash_disbursement
 from . import account_payment_register
 from . import petty_cash

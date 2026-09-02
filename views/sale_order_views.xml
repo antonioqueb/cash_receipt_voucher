@@ -84,6 +84,35 @@
                      se oculta abajo por xpath).
                      ============================================================ -->
                 <page string="Pagos Recibidos" name="som_payments_unified">
+                    <!-- La factura siempre representa la orden: diferencia y control -->
+                    <field name="x_invoice_gap" invisible="1"/>
+                    <field name="x_invoice_sync_note" invisible="1"/>
+                    <div class="row mb-2 align-items-center" invisible="state not in ('sale', 'done')">
+                        <div class="col-auto">
+                            <field name="x_invoice_sync" widget="boolean_toggle"/>
+                            <label for="x_invoice_sync" class="ms-1"/>
+                        </div>
+                        <div class="col-auto" invisible="x_invoice_gap == 0">
+                            <div class="alert alert-warning mb-0 py-1 px-3" role="alert">
+                                <i class="fa fa-exclamation-triangle"/>
+                                <strong>Facturado ≠ orden:</strong>
+                                <field name="x_invoice_gap" widget="monetary" class="oe_inline"/>
+                                <span invisible="x_invoice_gap &lt; 0"> por facturar</span>
+                                <span invisible="x_invoice_gap &gt; 0"> facturado de más</span>
+                            </div>
+                        </div>
+                        <div class="col-auto" invisible="not x_invoice_sync_note">
+                            <div class="alert alert-danger mb-0 py-1 px-3" role="alert">
+                                <i class="fa fa-ban"/> <field name="x_invoice_sync_note" class="oe_inline"/>
+                            </div>
+                        </div>
+                        <div class="col-auto" invisible="x_invoice_gap == 0">
+                            <button name="action_som_sync_invoices" type="object"
+                                    string="Alinear facturas con la orden"
+                                    class="btn-warning" icon="fa-refresh"
+                                    confirm="Se generará la factura complementaria o la nota de crédito por la diferencia entre la orden y lo facturado. Las facturas y pagos existentes no se tocan. ¿Continuar?"/>
+                        </div>
+                    </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-auto">
                             <button name="action_open_cash_receipt_wizard"
