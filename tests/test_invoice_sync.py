@@ -57,7 +57,8 @@ class TestInvoiceSync(TransactionCase):
     def test_01_price_change_creates_complementary_invoice(self):
         so, inv = self._order(100000.0)
         self.assertAlmostEqual(so.x_invoice_gap, 0.0, 2)
-        so.order_line.price_unit = 12000.0      # la orden sube a 120,000
+        # cambio SIN disparo automático, para probar el motor a solas
+        so.order_line.with_context(som_skip_invoice_sync=True).write({'price_unit': 12000.0})  # sube a 120,000
         created = so._som_sync_invoices()
         self.assertEqual(len(created), 1)
         self.assertEqual(created.move_type, 'out_invoice')
@@ -73,7 +74,7 @@ class TestInvoiceSync(TransactionCase):
     def test_02_new_line_and_qty_reduction(self):
         so, inv = self._order(100000.0)
         # nueva línea de servicio y la placa baja a 8 piezas
-        so.write({'order_line': [
+        so.with_context(som_skip_invoice_sync=True).write({'order_line': [
             (0, 0, {'product_id': self.service.id, 'product_uom_qty': 1, 'price_unit': 5000.0,
                     'tax_ids': [(6, 0, self.tax16.ids)]}),
             (1, so.order_line[0].id, {'product_uom_qty': 8}),
@@ -98,6 +99,18 @@ class TestInvoiceSync(TransactionCase):
         created = so._som_sync_invoices(force=True)
         self.assertEqual(len(created), 1)
         self.assertAlmostEqual(so.x_invoice_gap, 0.0, 2)
+
+    def test_05_auto_sync_on_save(self):
+        """Guardar un cambio en la orden confirmada alinea solo, una sola vez."""
+        so, inv = self._order(100000.0)
+        so.order_line.price_unit = 12000.0
+        docs = so._som_posted_customer_invoices()
+        self.assertEqual(len(docs), 2, 'la original y UNA complementaria (sin duplicados)')
+        self.assertAlmostEqual(self._invoiced(so), 120000.0, delta=0.05)
+        self.assertAlmostEqual(so.x_invoice_gap, 0.0, 2)
+        # otro guardado sin cambios reales no genera nada
+        so.write({'order_line': [(1, so.order_line.id, {'price_unit': 12000.0})]})
+        self.assertEqual(len(so._som_posted_customer_invoices()), 2)
 
     def test_04_unlinked_invoice_line_stops_sync(self):
         so, inv = self._order(50000.0)
