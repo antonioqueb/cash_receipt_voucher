@@ -27,10 +27,18 @@ class TestInvoiceSync(TransactionCase):
             'taxes_id': [(6, 0, cls.tax16.ids)],
         })
         cls.customer = cls.env['res.partner'].create({'name': 'Cliente sync (prueba)'})
+        # Vendedor real: el superusuario no puede ser vendedor de una orden
+        # (candado del módulo de comisiones).
+        cls.seller_user = cls.env['res.users'].create({
+            'name': 'Vendedor sync (prueba)', 'login': 'vendedor_sync_prueba',
+            'group_ids': [(6, 0, [cls.env.ref('sales_team.group_sale_salesman').id,
+                                  cls.env.ref('base.group_user').id])],
+        })
 
     def _order(self, goods=100000.0):
         so = self.env['sale.order'].create({
             'partner_id': self.customer.id,
+            'user_id': self.seller_user.id,
             'order_line': [(0, 0, {'product_id': self.goods.id, 'product_uom_qty': 10, 'price_unit': goods / 10.0,
                                    'tax_ids': [(6, 0, self.tax16.ids)]})],
         })
