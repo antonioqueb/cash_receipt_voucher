@@ -82,6 +82,12 @@ class PettyCashEntry(models.Model):
     # Origen: Salida de la caja principal marcada "Entrega a Caja Chica".
     disbursement_id = fields.Many2one('cash.disbursement', string='Salida de Caja (origen)',
                                       readonly=True, ondelete='set null')
+    # El Operador de Caja Chica NO tiene ACL sobre cash.disbursement: leer el
+    # Many2one (display_name) desde su formulario o el panel lanzaba
+    # AccessError y el módulo "no abría". La referencia viaja por este related
+    # (related_sudo) y el Many2one solo se muestra a Control de Efectivo.
+    disbursement_ref = fields.Char(string='Salida de Caja (origen)',
+                                   related='disbursement_id.name', readonly=True)
     cancel_reason = fields.Char(string='Motivo de cancelación', readonly=True)
     cancelled_by = fields.Many2one('res.users', readonly=True)
     cancelled_date = fields.Datetime(readonly=True)
@@ -224,7 +230,8 @@ class PettyCashEntry(models.Model):
             rec.message_post(body=_('Efectivo recibido por %s (%s).') % (self.env.user.name, rec.amount),
                              message_type='notification')
             if rec.disbursement_id:
-                rec.disbursement_id.message_post(
+                # sudo: el operador no tiene acceso a la salida de caja.
+                rec.disbursement_id.sudo().message_post(
                     body=_('Caja Chica confirmó la recepción: %s.') % rec.name, message_type='notification')
         return True
 
@@ -339,7 +346,7 @@ class PettyCashEntry(models.Model):
             'rows': rows,
             'pending': [{
                 'id': p.id, 'name': p.name, 'amount': round(p.amount, 2), 'concept': p.concept,
-                'from': p.disbursement_id.user_id.name if p.disbursement_id else (p.paid_to or ''),
+                'from': p.disbursement_id.sudo().user_id.name if p.disbursement_id else (p.paid_to or ''),
                 'date': som_format_date(fields.Datetime.context_timestamp(self, p.date)),
             } for p in pending],
             'categories': [{'id': c.id, 'name': c.name} for c in self.env['petty.cash.category'].search([])],

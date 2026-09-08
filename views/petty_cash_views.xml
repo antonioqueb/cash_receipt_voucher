@@ -64,7 +64,12 @@
                             <field name="reference"/>
                             <field name="user_id" widget="many2one_avatar_user"/>
                             <field name="received_by" widget="many2one_avatar_user" invisible="not received_by"/>
-                            <field name="disbursement_id" invisible="not disbursement_id"/>
+                            <!-- Many2one solo para Control de Efectivo (ACL de cash.disbursement);
+                                 el Operador ve la referencia por el related. -->
+                            <field name="disbursement_id" invisible="not disbursement_id"
+                                   groups="cash_receipt_voucher.group_cash_internal_control"/>
+                            <field name="disbursement_ref" invisible="not disbursement_ref"
+                                   groups="!cash_receipt_voucher.group_cash_internal_control"/>
                             <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                         </group>
                     </group>
