@@ -187,6 +187,13 @@ class SaleOrder(models.Model):
         for move_type, items in docs.items():
             if not items:
                 continue
+            # Autorización de precios PENDIENTE: la factura complementaria
+            # espera (V/924 y V/363 se facturaron al precio solicitado sin
+            # aprobación). Las notas de crédito sí pasan.
+            if move_type == 'out_invoice' and so._som_price_auth_pending_blocks_invoice():
+                so._som_sync_warn(_('Factura retenida: la solicitud de autorización de precios %s sigue pendiente.')
+                                  % so.x_price_authorization_id.name)
+                continue
             try:
                 with self.env.cr.savepoint(flush=False):
                     vals = so._prepare_invoice()
@@ -211,6 +218,17 @@ class SaleOrder(models.Model):
                 _logger.exception('[FACTURA=ORDEN] %s: no se pudo generar %s', so.name, move_type)
                 so._som_sync_warn(_('No se pudo generar el documento de ajuste (%s): %s') % (move_type, str(exc)[:200]))
         return created
+
+    def _som_price_auth_pending_blocks_invoice(self):
+        """True si la orden tiene solicitud de precios pendiente y sigue con
+        precios bajos. Tolerante a bases sin inventory_shopping_cart."""
+        self.ensure_one()
+        auth = getattr(self, 'x_price_authorization_id', False)
+        if not auth or getattr(auth, 'state', '') != 'pending':
+            return False
+        if 'x_has_low_prices' in self._fields and not self.x_has_low_prices:
+            return False
+        return True
 
     def _som_sync_warn(self, note):
         self.ensure_one()
