@@ -94,7 +94,7 @@
                         </div>
                         <div class="col-auto" invisible="x_invoice_gap == 0">
                             <div class="alert alert-warning mb-0 py-1 px-3" role="alert">
-                                <i class="fa fa-exclamation-triangle"/>
+                                <i class="fa fa-exclamation-triangle" title="Facturado distinto a la orden"/>
                                 <strong>Facturado ≠ orden:</strong>
                                 <field name="x_invoice_gap" widget="monetary" class="oe_inline"/>
                                 <span invisible="x_invoice_gap &lt; 0"> por facturar</span>
@@ -103,7 +103,7 @@
                         </div>
                         <div class="col-auto" invisible="not x_invoice_sync_note">
                             <div class="alert alert-danger mb-0 py-1 px-3" role="alert">
-                                <i class="fa fa-ban"/> <field name="x_invoice_sync_note" class="oe_inline"/>
+                                <i class="fa fa-ban" title="Sincronización de factura bloqueada"/> <field name="x_invoice_sync_note" class="oe_inline"/>
                             </div>
                         </div>
                         <div class="col-auto" invisible="x_invoice_gap == 0">
